@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/client";
 import { eachDayOfInterval, format, parseISO } from "date-fns";
 
 export type LedgerRow = {
@@ -16,22 +16,22 @@ export type LedgerRow = {
 
 type RevenueLike = {
   date: Date;
-  amount: Prisma.Decimal;
+  amount: Decimal;
   type: "DELIVERY" | "IN_STORE";
-  feePercent: Prisma.Decimal;
+  feePercent: Decimal;
 };
 
 type ExpenseLike = {
   date: Date;
-  amount: Prisma.Decimal;
+  amount: Decimal;
   paymentMethod: "ACCOUNT" | "CASH";
 };
 
-function decimal(value: Prisma.Decimal | number | string) {
-  return new Prisma.Decimal(value);
+function decimal(value: Decimal | number | string) {
+  return new Decimal(value);
 }
 
-function toNumber(value: Prisma.Decimal) {
+function toNumber(value: Decimal) {
   return Number(value.toString());
 }
 
@@ -42,7 +42,7 @@ export function buildDailyLedger({
   from,
   to,
 }: {
-  openingBalance: Prisma.Decimal;
+  openingBalance: Decimal;
   revenues: RevenueLike[];
   expenses: ExpenseLike[];
   from: string;

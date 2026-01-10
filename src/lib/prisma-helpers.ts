@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/client";
 
 export function decimalFromString(value: string) {
-  return new Prisma.Decimal(value.replace(",", "."));
+  return new Decimal(value.replace(",", "."));
 }

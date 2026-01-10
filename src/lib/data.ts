@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { Prisma } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/client";
 import { parseISO } from "date-fns";
 
 export async function getSettings() {
@@ -8,8 +8,8 @@ export async function getSettings() {
     return prisma.settings.create({
       data: {
         id: 1,
-        openingBalance: new Prisma.Decimal("0"),
-        defaultDeliveryFeePercent: new Prisma.Decimal("0"),
+        openingBalance: new Decimal("0"),
+        defaultDeliveryFeePercent: new Decimal("0"),
         currency: "RSD",
       },
     });
