@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { PrismaLibSQL } from "@prisma/adapter-libsql";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { createClient } from "@libsql/client";
 
 const globalForPrisma = globalThis as unknown as {
@@ -11,7 +11,7 @@ const databaseUrl = process.env.DATABASE_URL ?? "file:./dev.db";
 const useLibSql = databaseUrl.startsWith("libsql:");
 
 const adapter = useLibSql
-  ? new PrismaLibSQL(
+  ? new PrismaLibSql(
       createClient({
         url: databaseUrl,
         authToken: process.env.LIBSQL_AUTH_TOKEN,
