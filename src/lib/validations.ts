@@ -56,7 +56,7 @@ export const revenueSchema = z
 export const settingsSchema = z.object({
   openingBalance: decimalString,
   defaultDeliveryFeePercent: decimalString,
-  currency: z.string().trim().default("RSD"),
+  currency: z.string().trim(),
 });
 
 export const dateRangeSchema = z.object({
