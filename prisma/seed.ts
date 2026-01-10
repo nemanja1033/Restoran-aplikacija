@@ -2,7 +2,10 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 
-const databaseUrl = process.env.DATABASE_URL ?? "file:./dev.db";
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  process.env.TURSO_DATABASE_URL ??
+  "file:./dev.db";
 const adapter = databaseUrl.startsWith("libsql:")
   ? new PrismaLibSql({
       url: databaseUrl,

@@ -37,7 +37,7 @@ Vercel ne podržava lokalni SQLite fajl, pa je za demo potrebno koristiti LibSQL
 
 1) Kreirajte bazu u Turso (ili drugom LibSQL provideru).
 2) U Vercel podešavanjima dodajte env varijable:
-   - `DATABASE_URL=libsql://...`
+   - `DATABASE_URL=libsql://...` (ili `TURSO_DATABASE_URL`)
    - `LIBSQL_AUTH_TOKEN=...`
 3) Deploy.
 
