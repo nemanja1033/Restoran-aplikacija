@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { getExpenses, getRevenues, getSettings } from "@/lib/data";
+import type { Expense, Revenue } from "@prisma/client";
 import { buildDailyLedger } from "@/lib/ledger";
 import { format, parseISO, subDays } from "date-fns";
 
@@ -50,7 +51,7 @@ export async function GET(request: Request) {
   );
 
   const transactions = [
-    ...revenues.map((revenue) => {
+    ...revenues.map((revenue: Revenue) => {
       const fee = revenue.amount.mul(revenue.feePercent).div(100);
       const net = revenue.amount.minus(fee);
       return {
@@ -64,7 +65,7 @@ export async function GET(request: Request) {
         Beleška: revenue.note ?? "",
       };
     }),
-    ...expenses.map((expense) => ({
+    ...expenses.map((expense: Expense) => ({
       Datum: format(expense.date, "yyyy-MM-dd"),
       Tip: "Trošak",
       Iznos: Number(expense.amount.toString()),
