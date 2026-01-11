@@ -4,6 +4,8 @@ import { buildDailyLedger } from "@/lib/ledger";
 import { format, subDays } from "date-fns";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function getRange(searchParams: URLSearchParams) {
   const today = new Date();

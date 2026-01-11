@@ -1,9 +1,11 @@
 export async function apiFetch<T>(input: RequestInfo, init?: RequestInit) {
+  const method = init?.method ?? "GET";
   const response = await fetch(input, {
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {}),
     },
+    cache: method === "GET" ? "no-store" : "default",
     ...init,
   });
 
@@ -13,7 +15,6 @@ export async function apiFetch<T>(input: RequestInfo, init?: RequestInit) {
   }
 
   if (typeof window !== "undefined") {
-    const method = init?.method ?? "GET";
     if (method !== "GET") {
       window.dispatchEvent(new Event("finance-data-updated"));
     }

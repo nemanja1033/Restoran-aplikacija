@@ -7,6 +7,8 @@ import { parseDateString } from "@/lib/format";
 import { parseISO } from "date-fns";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(request: Request) {
   await ensureSchema();
