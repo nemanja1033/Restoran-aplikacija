@@ -32,7 +32,10 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json(receipt);
+    return NextResponse.json({
+      ...receipt,
+      downloadUrl: `/api/receipts/${receipt.id}`,
+    });
   } catch {
     return NextResponse.json(
       { error: "Neuspešan upload računa." },

@@ -68,11 +68,12 @@ Then deploy. The app can bootstrap missing tables at runtime, but **migrations a
 
 ## Receipts (Računi)
 - File upload (image/PDF) on expenses.
-- In dev, files are stored **locally** in `public/uploads`.
+- Local storage uses disk (dev: `public/uploads`, Vercel: `/tmp/uploads`).
+- Download link is served via `/api/receipts/:id`.
 - `StorageProvider` interface is in `src/lib/storage.ts` for future S3 integration.
 
 **Limitation / TODO**:
-- On Vercel, local file storage is ephemeral. Replace `LocalStorageProvider` with S3/Blob storage.
+- On Vercel, `/tmp` is ephemeral. Replace `LocalStorageProvider` with S3/Blob storage for persistence.
 
 ## Excel Export
 **Button: “Izvezi u Excel”**

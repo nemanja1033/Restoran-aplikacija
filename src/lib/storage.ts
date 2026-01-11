@@ -13,7 +13,10 @@ export interface StorageProvider {
 }
 
 class LocalStorageProvider implements StorageProvider {
-  private uploadDir = path.join(process.cwd(), "public", "uploads");
+  private uploadDir =
+    process.env.VERCEL === "1"
+      ? path.join("/tmp", "uploads")
+      : path.join(process.cwd(), "public", "uploads");
 
   async save(file: File): Promise<StoredFile> {
     await fs.mkdir(this.uploadDir, { recursive: true });
@@ -23,7 +26,6 @@ class LocalStorageProvider implements StorageProvider {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const fileName = `${Date.now()}_${safeName}`;
     const diskPath = path.join(this.uploadDir, fileName);
-    const publicPath = `/uploads/${fileName}`;
 
     await fs.writeFile(diskPath, buffer);
 
@@ -31,7 +33,7 @@ class LocalStorageProvider implements StorageProvider {
       fileName: file.name,
       mimeType: file.type || "application/octet-stream",
       size: buffer.length,
-      storagePath: publicPath,
+      storagePath: diskPath,
     };
   }
 }

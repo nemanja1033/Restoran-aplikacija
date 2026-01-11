@@ -340,7 +340,7 @@ export function DailyLedger() {
                           pdvPercent: expense.pdvPercent,
                           paidNow: expense.paidNow,
                           receiptId: expense.receiptId ?? undefined,
-                          receiptPath: expense.receipt?.storagePath,
+                          receiptPath: expense.receiptId ? `/api/receipts/${expense.receiptId}` : undefined,
                           note: expense.note ?? "",
                         })}>
                           Izmeni

@@ -64,7 +64,7 @@ export async function GET(request: Request) {
           : `Dobavljač #${expense.supplier.number}`
         : "-",
       "Plaćeno odmah": expense.paidNow ? "Da" : "Ne",
-      "Račun link": expense.receipt?.storagePath ?? "-",
+      "Račun link": expense.receiptId ? `/api/receipts/${expense.receiptId}` : "-",
     })),
     ...payments.map((payment: PaymentItem) => ({
       Datum: format(payment.date, "yyyy-MM-dd"),

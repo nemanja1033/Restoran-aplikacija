@@ -147,7 +147,7 @@ export function ExpenseForm({
       }
       const receipt = await response.json();
       setValue("receiptId", receipt.id);
-      setReceiptPath(receipt.storagePath);
+      setReceiptPath(receipt.downloadUrl ?? `/api/receipts/${receipt.id}`);
       toast.success("Račun je dodat.");
     } catch {
       toast.error("Neuspešan upload računa.");
