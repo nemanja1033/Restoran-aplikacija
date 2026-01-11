@@ -5,6 +5,7 @@ import { expenseSchema } from "@/lib/validations";
 import { decimalFromString } from "@/lib/prisma-helpers";
 import { parseDateString } from "@/lib/format";
 import { parseISO } from "date-fns";
+import { getSettings } from "@/lib/data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,20 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
+  const summary = searchParams.get("summary") === "1";
+
+  if (summary && !from && !to) {
+    const [expenses, suppliers, settings] = await Promise.all([
+      prisma.expense.findMany({
+        include: { supplier: true },
+        orderBy: { date: "desc" },
+      }),
+      prisma.supplier.findMany({ orderBy: { number: "asc" } }),
+      getSettings(),
+    ]);
+
+    return NextResponse.json({ expenses, suppliers, settings });
+  }
 
   const where =
     from && to

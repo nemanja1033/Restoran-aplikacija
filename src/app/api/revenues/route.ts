@@ -5,6 +5,7 @@ import { revenueSchema } from "@/lib/validations";
 import { decimalFromString } from "@/lib/prisma-helpers";
 import { parseDateString } from "@/lib/format";
 import { parseISO } from "date-fns";
+import { getSettings } from "@/lib/data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +16,16 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
+  const summary = searchParams.get("summary") === "1";
+
+  if (summary && !from && !to) {
+    const [revenues, settings] = await Promise.all([
+      prisma.revenue.findMany({ orderBy: { date: "desc" } }),
+      getSettings(),
+    ]);
+
+    return NextResponse.json({ revenues, settings });
+  }
 
   const where =
     from && to

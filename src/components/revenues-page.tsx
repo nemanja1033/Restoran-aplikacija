@@ -49,12 +49,12 @@ export function RevenuesPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [revenuesData, settingsData] = await Promise.all([
-        apiFetch<Revenue[]>("/api/revenues"),
-        apiFetch<Settings>("/api/settings"),
-      ]);
-      setRevenues(revenuesData);
-      setSettings(settingsData);
+      const data = await apiFetch<{
+        revenues: Revenue[];
+        settings: Settings;
+      }>("/api/revenues?summary=1");
+      setRevenues(data.revenues);
+      setSettings(data.settings);
     } catch {
       toast.error("Neuspešno učitavanje prihoda.");
     }

@@ -53,14 +53,14 @@ export function ExpensesPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [expensesData, suppliersData, settingsData] = await Promise.all([
-        apiFetch<Expense[]>("/api/expenses"),
-        apiFetch<SupplierOption[]>("/api/suppliers"),
-        apiFetch<Settings>("/api/settings"),
-      ]);
-      setExpenses(expensesData);
-      setSuppliers(suppliersData);
-      setSettings(settingsData);
+      const data = await apiFetch<{
+        expenses: Expense[];
+        suppliers: SupplierOption[];
+        settings: Settings;
+      }>("/api/expenses?summary=1");
+      setExpenses(data.expenses);
+      setSuppliers(data.suppliers);
+      setSettings(data.settings);
     } catch {
       toast.error("Neuspešno učitavanje podataka.");
     }
