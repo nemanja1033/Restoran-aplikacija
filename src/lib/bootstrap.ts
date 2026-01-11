@@ -85,13 +85,6 @@ export async function ensureSchema() {
             updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
           );`
         ),
-        prisma.$executeRawUnsafe(
-          `INSERT OR IGNORE INTO Settings (id, openingBalance, defaultPdvPercent, defaultDeliveryFeePercent, currency, createdAt, updatedAt)
-           VALUES (1, 0, 0, 0, 'RSD', datetime('now'), datetime('now'));`
-        ),
-        prisma.$executeRawUnsafe(
-          `UPDATE Settings SET defaultPdvPercent = 0 WHERE defaultPdvPercent IS NULL;`
-        ),
       ]);
 
       const alterStatements = [
@@ -117,6 +110,14 @@ export async function ensureSchema() {
           // Ignore if column already exists.
         }
       }
+
+      await prisma.$executeRawUnsafe(
+        `INSERT OR IGNORE INTO Settings (id, openingBalance, defaultPdvPercent, defaultDeliveryFeePercent, currency, createdAt, updatedAt)
+         VALUES (1, 0, 0, 0, 'RSD', datetime('now'), datetime('now'));`
+      );
+      await prisma.$executeRawUnsafe(
+        `UPDATE Settings SET defaultPdvPercent = 0 WHERE defaultPdvPercent IS NULL;`
+      );
     })().catch((error) => {
       bootstrapPromise = null;
       throw error;
