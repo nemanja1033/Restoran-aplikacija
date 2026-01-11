@@ -90,10 +90,7 @@ export function buildDailyLedger({
 
     for (const expense of dayExpenses) {
       pdvTotal = pdvTotal.plus(expense.pdvAmount);
-      const cashImpact =
-        expense.type !== "SUPPLIER" ||
-        expense.paidNow ||
-        expense.type === "SUPPLIER_PAYMENT";
+      const cashImpact = expense.type !== "SUPPLIER" || expense.paidNow;
       if (cashImpact) {
         expensesCashTotal = expensesCashTotal.plus(expense.grossAmount);
       }
