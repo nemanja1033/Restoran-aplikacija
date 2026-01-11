@@ -6,6 +6,7 @@ import { decimalFromString } from "@/lib/prisma-helpers";
 import { parseDateString } from "@/lib/format";
 import { getSettings } from "@/lib/data";
 import { calculateDeliveryFee } from "@/lib/calculations";
+import { getSessionAccountId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -16,9 +17,19 @@ export async function PUT(
   try {
     await ensureSchema();
     const { id } = await params;
+    const accountId = await getSessionAccountId();
+    if (!accountId) {
+      return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+    }
     const body = await request.json();
     const parsed = incomeSchema.parse(body);
-    const settings = await getSettings();
+    const existing = await prisma.income.findFirst({
+      where: { id: Number(id), accountId },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Prihod nije pronađen." }, { status: 404 });
+    }
+    const settings = await getSettings(accountId);
 
     const feePercent =
       parsed.channel === "DELIVERY"
@@ -59,7 +70,16 @@ export async function DELETE(
   try {
     await ensureSchema();
     const { id } = await params;
-    await prisma.income.delete({ where: { id: Number(id) } });
+    const accountId = await getSessionAccountId();
+    if (!accountId) {
+      return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+    }
+    const deleted = await prisma.income.deleteMany({
+      where: { id: Number(id), accountId },
+    });
+    if (!deleted.count) {
+      return NextResponse.json({ error: "Prihod nije pronađen." }, { status: 404 });
+    }
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json(

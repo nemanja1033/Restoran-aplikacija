@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
-import { getExpenses, getIncomes, getPayments, getSuppliers } from "@/lib/data";
+import { getExpenses, getIncomes, getSuppliers } from "@/lib/data";
+import { getSessionAccountId } from "@/lib/auth";
 import { format, parseISO, subDays } from "date-fns";
 
 export const runtime = "nodejs";
@@ -21,18 +22,19 @@ function getRange(searchParams: URLSearchParams) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const { from, to } = getRange(searchParams);
+  const accountId = await getSessionAccountId();
+  if (!accountId) {
+    return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+  }
 
-  const [incomes, expenses, payments, suppliers] = await Promise.all([
-    getIncomes(from, to),
-    getExpenses(from, to),
-    getPayments(from, to),
-    getSuppliers(),
+  const [incomes, expenses, suppliers] = await Promise.all([
+    getIncomes(accountId, from, to),
+    getExpenses(accountId, from, to),
+    getSuppliers(accountId),
   ]);
 
   type IncomeItem = Awaited<ReturnType<typeof getIncomes>>[number];
   type ExpenseItem = Awaited<ReturnType<typeof getExpenses>>[number];
-  type PaymentItem = Awaited<ReturnType<typeof getPayments>>[number];
-
   const transactions = [
     ...incomes.map((income: IncomeItem) => {
       return {
@@ -51,7 +53,7 @@ export async function GET(request: Request) {
     }),
     ...expenses.map((expense: ExpenseItem) => ({
       Datum: format(expense.date, "yyyy-MM-dd"),
-      Tip: "Trošak",
+      Tip: expense.type === "SUPPLIER_PAYMENT" ? "Uplata dobavljaču" : "Trošak",
       Opis: expense.note ?? "",
       Bruto: Number(expense.grossAmount.toString()),
       Neto: Number(expense.netAmount.toString()),
@@ -63,25 +65,8 @@ export async function GET(request: Request) {
           ? `${expense.supplier.name} (#${expense.supplier.number})`
           : `Dobavljač #${expense.supplier.number}`
         : "-",
-      "Plaćeno odmah": expense.paidNow ? "Da" : "Ne",
+      "Plaćeno odmah": expense.type === "SUPPLIER" ? (expense.paidNow ? "Da" : "Ne") : "Da",
       "Račun link": expense.receiptId ? `/api/receipts/${expense.receiptId}` : "-",
-    })),
-    ...payments.map((payment: PaymentItem) => ({
-      Datum: format(payment.date, "yyyy-MM-dd"),
-      Tip: "Uplata",
-      Opis: payment.note ?? "",
-      Bruto: Number(payment.amount.toString()),
-      Neto: Number(payment.amount.toString()),
-      "PDV %": 0,
-      "PDV iznos": 0,
-      Kanal: "-",
-      Dobavljač: payment.supplier
-        ? payment.supplier.name
-          ? `${payment.supplier.name} (#${payment.supplier.number})`
-          : `Dobavljač #${payment.supplier.number}`
-        : "Ostalo",
-      "Plaćeno odmah": "-",
-      "Račun link": "-",
     })),
   ].sort((a, b) =>
     parseISO(a.Datum).getTime() - parseISO(b.Datum).getTime()
@@ -91,11 +76,19 @@ export async function GET(request: Request) {
 
   const supplierTotals = suppliers.map((supplier) => {
     const purchased = expenses
-      .filter((expense) => expense.supplierId === supplier.id)
+      .filter((expense) => expense.supplierId === supplier.id && expense.type === "SUPPLIER")
       .reduce((sum, expense) => sum + Number(expense.grossAmount.toString()), 0);
-    const paid = payments
-      .filter((payment) => payment.supplierId === supplier.id)
-      .reduce((sum, payment) => sum + Number(payment.amount.toString()), 0);
+    const paid = expenses
+      .filter((expense) => expense.supplierId === supplier.id)
+      .reduce((sum, expense) => {
+        if (expense.type === "SUPPLIER" && expense.paidNow) {
+          return sum + Number(expense.grossAmount.toString());
+        }
+        if (expense.type === "SUPPLIER_PAYMENT") {
+          return sum + Number(expense.grossAmount.toString());
+        }
+        return sum;
+      }, 0);
     return {
       Naziv: supplier.name ?? `Dobavljač #${supplier.number}`,
       Kategorija:

@@ -7,6 +7,7 @@ import { parseDateString } from "@/lib/format";
 import { getSettings } from "@/lib/data";
 import { Decimal } from "@prisma/client/runtime/client";
 import { calculatePdvBreakdown } from "@/lib/calculations";
+import { getSessionAccountId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -17,18 +18,39 @@ export async function PUT(
   try {
     await ensureSchema();
     const { id } = await params;
+    const accountId = await getSessionAccountId();
+    if (!accountId) {
+      return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+    }
     const body = await request.json();
     const parsed = expenseSchema.parse(body);
 
-    const existing = await prisma.expense.findUnique({
-      where: { id: Number(id) },
+    const existing = await prisma.expense.findFirst({
+      where: { id: Number(id), accountId },
     });
-    const settings = await getSettings();
+    if (!existing) {
+      return NextResponse.json({ error: "Trošak nije pronađen." }, { status: 404 });
+    }
+    const settings = await getSettings(accountId);
     const supplier = parsed.supplierId
-      ? await prisma.supplier.findUnique({ where: { id: parsed.supplierId } })
+      ? await prisma.supplier.findFirst({ where: { id: parsed.supplierId, accountId } })
       : null;
+    if (parsed.supplierId && !supplier) {
+      return NextResponse.json({ error: "Dobavljač nije pronađen." }, { status: 404 });
+    }
+    if (parsed.receiptId) {
+      const receipt = await prisma.receipt.findFirst({
+        where: { id: parsed.receiptId, accountId },
+      });
+      if (!receipt) {
+        return NextResponse.json({ error: "Račun nije pronađen." }, { status: 404 });
+      }
+    }
 
-    const pdvPercent = parsed.pdvPercent
+    const isSupplierPayment = parsed.type === "SUPPLIER_PAYMENT";
+    const pdvPercent = isSupplierPayment
+      ? new Decimal(0)
+      : parsed.pdvPercent
       ? decimalFromString(parsed.pdvPercent)
       : supplier?.pdvPercent ??
         (parsed.type === "SUPPLIER" || parsed.type === "OTHER"
@@ -52,22 +74,11 @@ export async function PUT(
         pdvAmount,
         type: parsed.type,
         note: parsed.note || null,
-        paidNow: Boolean(parsed.paidNow),
+        paidNow: isSupplierPayment ? true : Boolean(parsed.paidNow),
         receiptId: parsed.receiptId ?? null,
       },
       include: { supplier: true },
     });
-
-    if (expense.paidNow && expense.supplierId && expense.type === "SUPPLIER" && !existing?.paidNow) {
-      await prisma.payment.create({
-        data: {
-          date: expense.date,
-          amount: expense.grossAmount,
-          supplierId: expense.supplierId,
-          note: "Plaćeno odmah (izmene)",
-        },
-      });
-    }
 
     return NextResponse.json(expense);
   } catch {
@@ -85,7 +96,16 @@ export async function DELETE(
   try {
     await ensureSchema();
     const { id } = await params;
-    await prisma.expense.delete({ where: { id: Number(id) } });
+    const accountId = await getSessionAccountId();
+    if (!accountId) {
+      return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+    }
+    const deleted = await prisma.expense.deleteMany({
+      where: { id: Number(id), accountId },
+    });
+    if (!deleted.count) {
+      return NextResponse.json({ error: "Trošak nije pronađen." }, { status: 404 });
+    }
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json(

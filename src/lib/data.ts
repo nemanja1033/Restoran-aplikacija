@@ -3,13 +3,15 @@ import { ensureSchema } from "@/lib/bootstrap";
 import { Decimal } from "@prisma/client/runtime/client";
 import { parseISO } from "date-fns";
 
-export async function getSettings() {
+export async function getSettings(accountId: number) {
   await ensureSchema();
-  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  const settings = await prisma.settings.findUnique({
+    where: { accountId },
+  });
   if (!settings) {
     return prisma.settings.create({
       data: {
-        id: 1,
+        accountId,
         startingBalance: new Decimal("0"),
         defaultPdvPercent: new Decimal("0"),
         deliveryFeePercent: new Decimal("0"),
@@ -20,15 +22,19 @@ export async function getSettings() {
   return settings;
 }
 
-export async function getSuppliers() {
+export async function getSuppliers(accountId: number) {
   await ensureSchema();
-  return prisma.supplier.findMany({ orderBy: { number: "asc" } });
+  return prisma.supplier.findMany({
+    where: { accountId },
+    orderBy: { number: "asc" },
+  });
 }
 
-export async function getIncomes(from: string, to: string) {
+export async function getIncomes(accountId: number, from: string, to: string) {
   await ensureSchema();
   return prisma.income.findMany({
     where: {
+      accountId,
       date: {
         gte: parseISO(from),
         lte: parseISO(to),
@@ -38,10 +44,11 @@ export async function getIncomes(from: string, to: string) {
   });
 }
 
-export async function getExpenses(from: string, to: string) {
+export async function getExpenses(accountId: number, from: string, to: string) {
   await ensureSchema();
   return prisma.expense.findMany({
     where: {
+      accountId,
       date: {
         gte: parseISO(from),
         lte: parseISO(to),
@@ -52,31 +59,19 @@ export async function getExpenses(from: string, to: string) {
   });
 }
 
-export async function getPayments(from: string, to: string) {
-  await ensureSchema();
-  return prisma.payment.findMany({
-    where: {
-      date: {
-        gte: parseISO(from),
-        lte: parseISO(to),
-      },
-    },
-    include: { supplier: true },
-    orderBy: { date: "asc" },
-  });
-}
-
-export async function getExpensesAll() {
+export async function getExpensesAll(accountId: number) {
   await ensureSchema();
   return prisma.expense.findMany({
+    where: { accountId },
     include: { supplier: true, receipt: true },
     orderBy: { date: "desc" },
   });
 }
 
-export async function getIncomesAll() {
+export async function getIncomesAll(accountId: number) {
   await ensureSchema();
   return prisma.income.findMany({
+    where: { accountId },
     orderBy: { date: "desc" },
   });
 }

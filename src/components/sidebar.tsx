@@ -2,24 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Wallet,
   Settings,
   HandCoins,
   Users,
-  Banknote,
   FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
 
 export const navItems = [
   { href: "/", label: "Kontrolna tabla", icon: LayoutDashboard },
   { href: "/prihodi", label: "Prihodi", icon: Wallet },
   { href: "/troskovi", label: "Troškovi", icon: HandCoins },
   { href: "/dobavljaci", label: "Dobavljači", icon: Users },
-  { href: "/uplate", label: "Uplate", icon: Banknote },
   { href: "/pdv-izvestaj", label: "PDV izveštaj", icon: FileText },
   { href: "/podesavanja", label: "Podešavanja", icon: Settings },
 ];
@@ -50,6 +50,13 @@ function SidebarContent() {
           );
         })}
       </nav>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => signOut({ callbackUrl: "/login" })}
+      >
+        Odjava
+      </Button>
       <div className="rounded-xl border border-dashed border-muted-foreground/30 p-4 text-xs text-muted-foreground">
         Podaci se čuvaju lokalno u SQLite bazi i dostupni su offline.
       </div>

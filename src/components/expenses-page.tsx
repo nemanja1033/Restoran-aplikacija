@@ -33,7 +33,7 @@ type Expense = {
   netAmount: string;
   pdvPercent: string;
   pdvAmount: string;
-  type: "SUPPLIER" | "SALARY" | "OTHER";
+  type: "SUPPLIER" | "SUPPLIER_PAYMENT" | "SALARY" | "OTHER";
   receiptId?: number | null;
   note: string | null;
   supplier: SupplierOption | null;
@@ -137,6 +137,8 @@ export function ExpensesPage() {
                     <TableCell>
                       {expense.type === "SUPPLIER"
                         ? "Dobavljač"
+                        : expense.type === "SUPPLIER_PAYMENT"
+                        ? "Uplata dobavljaču"
                         : expense.type === "SALARY"
                         ? "Plate"
                         : "Ostalo"}

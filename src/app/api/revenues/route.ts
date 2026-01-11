@@ -7,6 +7,7 @@ import { parseDateString } from "@/lib/format";
 import { parseISO } from "date-fns";
 import { getSettings } from "@/lib/data";
 import { calculateDeliveryFee } from "@/lib/calculations";
+import { getSessionAccountId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,11 +19,15 @@ export async function GET(request: Request) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const summary = searchParams.get("summary") === "1";
+  const accountId = await getSessionAccountId();
+  if (!accountId) {
+    return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+  }
 
   if (summary && !from && !to) {
     const [revenues, settings] = await Promise.all([
-      prisma.income.findMany({ orderBy: { date: "desc" } }),
-      getSettings(),
+      prisma.income.findMany({ where: { accountId }, orderBy: { date: "desc" } }),
+      getSettings(accountId),
     ]);
 
     return NextResponse.json({ revenues, settings });
@@ -31,12 +36,13 @@ export async function GET(request: Request) {
   const where =
     from && to
       ? {
+          accountId,
           date: {
             gte: parseISO(from),
             lte: parseISO(to),
           },
         }
-      : undefined;
+      : { accountId };
 
   const revenues = await prisma.income.findMany({
     where,
@@ -49,9 +55,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     await ensureSchema();
+    const accountId = await getSessionAccountId();
+    if (!accountId) {
+      return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+    }
     const body = await request.json();
     const parsed = incomeSchema.parse(body);
-    const settings = await getSettings();
+    const settings = await getSettings(accountId);
 
     const feePercent =
       parsed.channel === "DELIVERY"
@@ -65,6 +75,7 @@ export async function POST(request: Request) {
 
     const revenue = await prisma.income.create({
       data: {
+        accountId,
         date: parseDateString(parsed.date),
         amount,
         channel: parsed.channel,

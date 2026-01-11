@@ -27,8 +27,7 @@ type LedgerRow = {
   incomeLocalNet: number;
   incomeDeliveryNet: number;
   incomeTotalNet: number;
-  expensesGross: number;
-  paymentsTotal: number;
+  expensesCashTotal: number;
   pdvTotal: number;
   runningBalance: number;
 };
@@ -57,7 +56,7 @@ type Expense = {
   netAmount: string;
   pdvPercent: string;
   pdvAmount: string;
-  type: "SUPPLIER" | "SALARY" | "OTHER";
+  type: "SUPPLIER" | "SUPPLIER_PAYMENT" | "SALARY" | "OTHER";
   receiptId?: number | null;
   note: string | null;
   supplier: SupplierOption | null;
@@ -201,8 +200,7 @@ export function DailyLedger() {
               <TableHead>Prihod lokal (neto)</TableHead>
               <TableHead>Prihod dostava (neto)</TableHead>
               <TableHead>Prihod ukupno</TableHead>
-              <TableHead>Troškovi (obaveze)</TableHead>
-              <TableHead>Uplate</TableHead>
+              <TableHead>Troškovi (gotovina)</TableHead>
               <TableHead>PDV</TableHead>
               <TableHead>Stanje na računu</TableHead>
             </TableRow>
@@ -210,13 +208,13 @@ export function DailyLedger() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                   Učitavanje...
                 </TableCell>
               </TableRow>
             ) : ledger.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
                   Nema podataka za izabrani period.
                 </TableCell>
               </TableRow>
@@ -231,8 +229,7 @@ export function DailyLedger() {
                   <TableCell>{formatCurrency(row.incomeLocalNet, currency)}</TableCell>
                   <TableCell>{formatCurrency(row.incomeDeliveryNet, currency)}</TableCell>
                   <TableCell>{formatCurrency(row.incomeTotalNet, currency)}</TableCell>
-                  <TableCell>{formatCurrency(row.expensesGross, currency)}</TableCell>
-                  <TableCell>{formatCurrency(row.paymentsTotal, currency)}</TableCell>
+                  <TableCell>{formatCurrency(row.expensesCashTotal, currency)}</TableCell>
                   <TableCell>{formatCurrency(row.pdvTotal, currency)}</TableCell>
                   <TableCell className="font-semibold">
                     {formatCurrency(row.runningBalance, currency)}
@@ -261,12 +258,8 @@ export function DailyLedger() {
                     <span>{formatCurrency(currentRow.incomeTotalNet, currency)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Troškovi (obaveze)</span>
-                    <span>{formatCurrency(currentRow.expensesGross, currency)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Uplate</span>
-                    <span>{formatCurrency(currentRow.paymentsTotal, currency)}</span>
+                    <span>Troškovi (gotovina)</span>
+                    <span>{formatCurrency(currentRow.expensesCashTotal, currency)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>PDV</span>
@@ -332,6 +325,8 @@ export function DailyLedger() {
                       <p className="text-xs text-muted-foreground">
                         {expense.type === "SUPPLIER"
                           ? "Dobavljač"
+                          : expense.type === "SUPPLIER_PAYMENT"
+                          ? "Uplata dobavljaču"
                           : expense.type === "SALARY"
                           ? "Plate"
                           : "Ostalo"}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { ensureSchema } from "@/lib/bootstrap";
 import { getStorageProvider } from "@/lib/storage";
+import { getSessionAccountId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,10 @@ export const revalidate = 0;
 export async function POST(request: Request) {
   try {
     await ensureSchema();
+    const accountId = await getSessionAccountId();
+    if (!accountId) {
+      return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+    }
     const formData = await request.formData();
     const file = formData.get("file");
 
@@ -25,6 +30,7 @@ export async function POST(request: Request) {
 
     const receipt = await prisma.receipt.create({
       data: {
+        accountId,
         fileName: stored.fileName,
         mimeType: stored.mimeType,
         size: stored.size,

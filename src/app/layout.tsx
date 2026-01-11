@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/components/auth-provider";
 
 const bricolage = Bricolage_Grotesque({
   variable: "--font-sans",
@@ -30,8 +31,10 @@ export default function RootLayout({
     <html lang="sr" suppressHydrationWarning>
       <body className={`${bricolage.variable} ${jetbrains.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          {children}
-          <Toaster richColors />
+          <AuthProvider>
+            {children}
+            <Toaster richColors />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -16,7 +16,7 @@ export type ExpenseFormValues = {
   id?: number;
   date: string;
   grossAmount: string;
-  type: "SUPPLIER" | "SALARY" | "OTHER";
+  type: "SUPPLIER" | "SUPPLIER_PAYMENT" | "SALARY" | "OTHER";
   supplierId?: number;
   pdvPercent?: string;
   paidNow?: boolean;
@@ -51,7 +51,7 @@ export function ExpenseForm({
       grossAmount: initialData?.grossAmount ?? "",
       type: initialData?.type ?? (suppliers.length > 0 ? "SUPPLIER" : "OTHER"),
       pdvPercent: initialData?.pdvPercent ?? defaultPdvPercent.toString(),
-      paidNow: initialData?.paidNow ?? false,
+      paidNow: initialData?.paidNow ?? true,
       note: initialData?.note ?? "",
       receiptId: initialData?.receiptId,
       receiptPath: initialData?.receiptPath,
@@ -77,16 +77,17 @@ export function ExpenseForm({
   const supplierId = watch("supplierId");
   const expenseType = watch("type");
   const pdvPercent = watch("pdvPercent");
+  const paidNow = watch("paidNow");
   const dateValue = watch("date");
 
   useEffect(() => {
-    if (!supplierId && expenseType === "SUPPLIER" && suppliers.length > 0) {
+    if (!supplierId && (expenseType === "SUPPLIER" || expenseType === "SUPPLIER_PAYMENT") && suppliers.length > 0) {
       setValue("supplierId", suppliers[0].id);
     }
   }, [supplierId, expenseType, suppliers, setValue]);
 
   useEffect(() => {
-    if (expenseType !== "SUPPLIER") {
+    if (expenseType !== "SUPPLIER" && expenseType !== "SUPPLIER_PAYMENT") {
       setValue("supplierId", undefined);
       if (expenseType === "SALARY") {
         setValue("pdvPercent", "0");
@@ -97,12 +98,20 @@ export function ExpenseForm({
     }
 
     const selected = suppliers.find((supplier) => supplier.id === supplierId);
-    if (selected?.pdvPercent != null) {
+    if (expenseType === "SUPPLIER_PAYMENT") {
+      setValue("pdvPercent", "0");
+    } else if (selected?.pdvPercent != null) {
       setValue("pdvPercent", String(selected.pdvPercent));
     } else if (!pdvPercent) {
       setValue("pdvPercent", defaultPdvPercent.toString());
     }
   }, [defaultPdvPercent, expenseType, pdvPercent, supplierId, suppliers, setValue]);
+
+  useEffect(() => {
+    if (expenseType === "SUPPLIER_PAYMENT") {
+      setValue("paidNow", true);
+    }
+  }, [expenseType, setValue]);
 
   useEffect(() => {
     if (!dateValue) {
@@ -168,6 +177,7 @@ export function ExpenseForm({
       <input type="hidden" {...register("supplierId", { valueAsNumber: true })} />
       <input type="hidden" {...register("type")} />
       <input type="hidden" {...register("pdvPercent")} />
+      <input type="hidden" {...register("paidNow")} />
       <input type="hidden" {...register("receiptId", { valueAsNumber: true })} />
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
@@ -197,6 +207,7 @@ export function ExpenseForm({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="SUPPLIER">Dobavljač</SelectItem>
+              <SelectItem value="SUPPLIER_PAYMENT">Uplata dobavljaču (zatvaranje duga)</SelectItem>
               <SelectItem value="SALARY">Plate</SelectItem>
               <SelectItem value="OTHER">Ostalo</SelectItem>
             </SelectContent>
@@ -207,13 +218,18 @@ export function ExpenseForm({
         </div>
         <div className="space-y-2">
           <Label htmlFor="pdvPercent">PDV (%)</Label>
-          <Input id="pdvPercent" type="text" {...register("pdvPercent")} />
+          <Input
+            id="pdvPercent"
+            type="text"
+            disabled={expenseType === "SUPPLIER_PAYMENT"}
+            {...register("pdvPercent")}
+          />
           {errors.pdvPercent ? (
             <p className="text-xs text-destructive">{errors.pdvPercent.message}</p>
           ) : null}
         </div>
       </div>
-      {expenseType === "SUPPLIER" ? (
+      {expenseType === "SUPPLIER" || expenseType === "SUPPLIER_PAYMENT" ? (
         <div className="space-y-2">
           <Label>Dobavljač</Label>
           <Select
@@ -239,14 +255,20 @@ export function ExpenseForm({
         </div>
       ) : null}
       {expenseType === "SUPPLIER" ? (
-        <div className="flex items-center gap-2 text-sm">
-          <input
-            id="paidNow"
-            type="checkbox"
-            className="h-4 w-4"
-            {...register("paidNow")}
-          />
-          <Label htmlFor="paidNow">Plaćeno odmah?</Label>
+        <div className="space-y-2 text-sm">
+          <Label>Način plaćanja</Label>
+          <Select
+            value={paidNow ? "paid" : "credit"}
+            onValueChange={(value) => setValue("paidNow", value === "paid")}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Izaberite" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="paid">Plaćeno odmah</SelectItem>
+              <SelectItem value="credit">Na veresiju</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       ) : null}
       <div className="space-y-2">

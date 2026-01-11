@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { ensureSchema } from "@/lib/bootstrap";
 import { supplierSchema } from "@/lib/validations";
 import { decimalFromString } from "@/lib/prisma-helpers";
+import { getSessionAccountId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -13,9 +14,19 @@ export async function PUT(
   try {
     await ensureSchema();
     const { id } = await params;
+    const accountId = await getSessionAccountId();
+    if (!accountId) {
+      return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+    }
     const body = await request.json();
     const parsed = supplierSchema.parse(body);
 
+    const existing = await prisma.supplier.findFirst({
+      where: { id: Number(id), accountId },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "Dobavljač nije pronađen." }, { status: 404 });
+    }
     const supplier = await prisma.supplier.update({
       where: { id: Number(id) },
       data: {
@@ -42,7 +53,16 @@ export async function DELETE(
   try {
     await ensureSchema();
     const { id } = await params;
-    await prisma.supplier.delete({ where: { id: Number(id) } });
+    const accountId = await getSessionAccountId();
+    if (!accountId) {
+      return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+    }
+    const deleted = await prisma.supplier.deleteMany({
+      where: { id: Number(id), accountId },
+    });
+    if (!deleted.count) {
+      return NextResponse.json({ error: "Dobavljač nije pronađen." }, { status: 404 });
+    }
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json(

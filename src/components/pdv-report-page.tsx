@@ -13,7 +13,7 @@ type Expense = {
   grossAmount: string;
   netAmount: string;
   pdvAmount: string;
-  type: "SUPPLIER" | "SALARY" | "OTHER";
+  type: "SUPPLIER" | "SUPPLIER_PAYMENT" | "SALARY" | "OTHER";
   supplier: { id: number; name: string | null; number: number } | null;
 };
 
@@ -97,6 +97,8 @@ export function PdvReportPage() {
       const label =
         expense.type === "SUPPLIER"
           ? "Dobavljač"
+          : expense.type === "SUPPLIER_PAYMENT"
+          ? "Uplata dobavljaču"
           : expense.type === "SALARY"
           ? "Plate"
           : "Ostalo";
@@ -239,6 +241,8 @@ export function PdvReportPage() {
                     <TableCell>
                       {expense.type === "SUPPLIER"
                         ? "Dobavljač"
+                        : expense.type === "SUPPLIER_PAYMENT"
+                        ? "Uplata dobavljaču"
                         : expense.type === "SALARY"
                         ? "Plate"
                         : "Ostalo"}

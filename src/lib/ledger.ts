@@ -6,8 +6,7 @@ export type LedgerRow = {
   incomeLocalNet: number;
   incomeDeliveryNet: number;
   incomeTotalNet: number;
-  expensesGross: number;
-  paymentsTotal: number;
+  expensesCashTotal: number;
   pdvTotal: number;
   runningBalance: number;
 };
@@ -24,11 +23,8 @@ type ExpenseLike = {
   date: Date;
   grossAmount: Decimal;
   pdvAmount: Decimal;
-};
-
-type PaymentLike = {
-  date: Date;
-  amount: Decimal;
+  type: "SUPPLIER" | "SUPPLIER_PAYMENT" | "SALARY" | "OTHER";
+  paidNow: boolean;
 };
 
 function decimal(value: Decimal | number | string) {
@@ -43,14 +39,12 @@ export function buildDailyLedger({
   startingBalance,
   incomes,
   expenses,
-  payments,
   from,
   to,
 }: {
   startingBalance: Decimal;
   incomes: IncomeLike[];
   expenses: ExpenseLike[];
-  payments: PaymentLike[];
   from: string;
   to: string;
 }): LedgerRow[] {
@@ -71,12 +65,6 @@ export function buildDailyLedger({
     expenseByDay.set(key, [...(expenseByDay.get(key) ?? []), expense]);
   }
 
-  const paymentByDay = new Map<string, PaymentLike[]>();
-  for (const payment of payments) {
-    const key = format(payment.date, "yyyy-MM-dd");
-    paymentByDay.set(key, [...(paymentByDay.get(key) ?? []), payment]);
-  }
-
   let running = decimal(startingBalance);
   const rows: LedgerRow[] = [];
 
@@ -84,7 +72,6 @@ export function buildDailyLedger({
     const key = format(day, "yyyy-MM-dd");
     const dayIncomes = incomeByDay.get(key) ?? [];
     const dayExpenses = expenseByDay.get(key) ?? [];
-    const dayPayments = paymentByDay.get(key) ?? [];
 
     let incomeLocalNet = decimal(0);
     let incomeDeliveryNet = decimal(0);
@@ -98,20 +85,21 @@ export function buildDailyLedger({
     }
 
     const incomeTotalNet = incomeLocalNet.plus(incomeDeliveryNet);
-    let expensesGross = decimal(0);
+    let expensesCashTotal = decimal(0);
     let pdvTotal = decimal(0);
 
     for (const expense of dayExpenses) {
-      expensesGross = expensesGross.plus(expense.grossAmount);
       pdvTotal = pdvTotal.plus(expense.pdvAmount);
+      const cashImpact =
+        expense.type !== "SUPPLIER" ||
+        expense.paidNow ||
+        expense.type === "SUPPLIER_PAYMENT";
+      if (cashImpact) {
+        expensesCashTotal = expensesCashTotal.plus(expense.grossAmount);
+      }
     }
 
-    let paymentsTotal = decimal(0);
-    for (const payment of dayPayments) {
-      paymentsTotal = paymentsTotal.plus(payment.amount);
-    }
-
-    const dailyNetChange = incomeTotalNet.minus(paymentsTotal);
+    const dailyNetChange = incomeTotalNet.minus(expensesCashTotal);
     running = running.plus(dailyNetChange);
 
     rows.push({
@@ -119,8 +107,7 @@ export function buildDailyLedger({
       incomeLocalNet: toNumber(incomeLocalNet),
       incomeDeliveryNet: toNumber(incomeDeliveryNet),
       incomeTotalNet: toNumber(incomeTotalNet),
-      expensesGross: toNumber(expensesGross),
-      paymentsTotal: toNumber(paymentsTotal),
+      expensesCashTotal: toNumber(expensesCashTotal),
       pdvTotal: toNumber(pdvTotal),
       runningBalance: toNumber(running),
     });

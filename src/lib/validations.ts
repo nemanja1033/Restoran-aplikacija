@@ -27,7 +27,7 @@ export const expenseSchema = z
     id: z.number().int().optional(),
     date: dateStringSchema,
     grossAmount: decimalString,
-    type: z.enum(["SUPPLIER", "SALARY", "OTHER"]),
+    type: z.enum(["SUPPLIER", "SUPPLIER_PAYMENT", "SALARY", "OTHER"]),
     supplierId: z.number().int().optional(),
     pdvPercent: decimalString.optional(),
     note: z.string().trim().optional(),
@@ -35,7 +35,7 @@ export const expenseSchema = z
     receiptId: z.number().int().optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.type === "SUPPLIER" && !data.supplierId) {
+    if ((data.type === "SUPPLIER" || data.type === "SUPPLIER_PAYMENT") && !data.supplierId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Dobavljač je obavezan za ovaj tip troška",
@@ -72,15 +72,6 @@ export const settingsSchema = z.object({
   currency: z.string().trim(),
 });
 
-export const paymentSchema = z.object({
-  id: z.number().int().optional(),
-  date: dateStringSchema,
-  amount: decimalString,
-  supplierId: z.number().int().optional(),
-  note: z.string().trim().optional(),
-  allowOverpay: z.boolean().optional(),
-});
-
 export const dateRangeSchema = z.object({
   from: dateStringSchema,
   to: dateStringSchema,
@@ -90,5 +81,4 @@ export type SupplierInput = z.infer<typeof supplierSchema>;
 export type ExpenseInput = z.infer<typeof expenseSchema>;
 export type IncomeInput = z.infer<typeof incomeSchema>;
 export type SettingsInput = z.infer<typeof settingsSchema>;
-export type PaymentInput = z.infer<typeof paymentSchema>;
 export type DateRangeInput = z.infer<typeof dateRangeSchema>;

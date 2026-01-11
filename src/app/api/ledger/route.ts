@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getExpenses, getIncomes, getPayments, getSettings } from "@/lib/data";
+import { getExpenses, getIncomes, getSettings } from "@/lib/data";
+import { getSessionAccountId } from "@/lib/auth";
 import { buildDailyLedger } from "@/lib/ledger";
 import { format, subDays } from "date-fns";
 
@@ -21,19 +22,21 @@ function getRange(searchParams: URLSearchParams) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const { from, to } = getRange(searchParams);
+  const accountId = await getSessionAccountId();
+  if (!accountId) {
+    return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+  }
 
-  const settings = await getSettings();
-  const [incomes, expenses, payments] = await Promise.all([
-    getIncomes(from, to),
-    getExpenses(from, to),
-    getPayments(from, to),
+  const settings = await getSettings(accountId);
+  const [incomes, expenses] = await Promise.all([
+    getIncomes(accountId, from, to),
+    getExpenses(accountId, from, to),
   ]);
 
   const ledger = buildDailyLedger({
     startingBalance: settings.startingBalance,
     incomes,
     expenses,
-    payments,
     from,
     to,
   });

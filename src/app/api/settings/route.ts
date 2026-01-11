@@ -4,24 +4,33 @@ import { ensureSchema } from "@/lib/bootstrap";
 import { getSettings } from "@/lib/data";
 import { settingsSchema } from "@/lib/validations";
 import { decimalFromString } from "@/lib/prisma-helpers";
+import { getSessionAccountId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET() {
-  const settings = await getSettings();
+  const accountId = await getSessionAccountId();
+  if (!accountId) {
+    return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+  }
+  const settings = await getSettings(accountId);
   return NextResponse.json(settings);
 }
 
 export async function PUT(request: Request) {
   try {
     await ensureSchema();
+    const accountId = await getSessionAccountId();
+    if (!accountId) {
+      return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+    }
     const body = await request.json();
     const parsed = settingsSchema.parse(body);
 
     const settings = await prisma.settings.upsert({
-      where: { id: 1 },
+      where: { accountId },
       update: {
         startingBalance: decimalFromString(parsed.startingBalance),
         defaultPdvPercent: decimalFromString(parsed.defaultPdvPercent),
@@ -29,7 +38,7 @@ export async function PUT(request: Request) {
         currency: parsed.currency,
       },
       create: {
-        id: 1,
+        accountId,
         startingBalance: decimalFromString(parsed.startingBalance),
         defaultPdvPercent: decimalFromString(parsed.defaultPdvPercent),
         deliveryFeePercent: decimalFromString(parsed.deliveryFeePercent),

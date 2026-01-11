@@ -13,6 +13,7 @@ enum IncomeChannel {
 
 enum ExpenseType {
   SUPPLIER
+  SUPPLIER_PAYMENT
   SALARY
   OTHER
 }
@@ -24,8 +25,39 @@ enum SupplierCategory {
   OTHER
 }
 
+enum UserRole {
+  admin
+  staff
+}
+
+model Account {
+  id        Int       @id @default(autoincrement())
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  users     User[]
+  suppliers Supplier[]
+  incomes   Income[]
+  expenses  Expense[]
+  receipts  Receipt[]
+  settings  Settings[]
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  accountId    Int
+  username     String   @unique
+  passwordHash String
+  role         UserRole @default(admin)
+  createdAt    DateTime @default(now())
+  account      Account  @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+}
+
 model Supplier {
   id         Int              @id @default(autoincrement())
+  accountId  Int
   number     Int
   name       String?
   category   SupplierCategory @default(OTHER)
@@ -33,11 +65,14 @@ model Supplier {
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
   expenses   Expense[]
-  payments   Payment[]
+  account    Account          @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
 }
 
 model Income {
   id               Int           @id @default(autoincrement())
+  accountId        Int
   date             DateTime
   amount           Decimal
   channel          IncomeChannel
@@ -47,12 +82,15 @@ model Income {
   note             String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
+  account          Account       @relation(fields: [accountId], references: [id])
 
   @@map("Revenue")
+  @@index([accountId])
 }
 
 model Expense {
   id          Int         @id @default(autoincrement())
+  accountId   Int
   date        DateTime
   grossAmount Decimal     @map("amount")
   netAmount   Decimal     @default(0)
@@ -67,35 +105,35 @@ model Expense {
   updatedAt   DateTime    @updatedAt
   supplier    Supplier?   @relation(fields: [supplierId], references: [id])
   receipt     Receipt?    @relation(fields: [receiptId], references: [id])
-}
+  account     Account     @relation(fields: [accountId], references: [id])
 
-model Payment {
-  id         Int       @id @default(autoincrement())
-  date       DateTime
-  amount     Decimal
-  supplierId Int?
-  note       String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+  @@index([accountId])
 }
 
 model Receipt {
   id          Int       @id @default(autoincrement())
+  accountId   Int
   fileName    String
   mimeType    String
   size        Int
   storagePath String
   createdAt   DateTime  @default(now())
   expenses    Expense[]
+  account     Account   @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
 }
 
 model Settings {
-  id                Int      @id @default(1)
+  id                Int      @id @default(autoincrement())
+  accountId         Int
   startingBalance   Decimal  @map("openingBalance")
   defaultPdvPercent Decimal  @default(0)
   deliveryFeePercent Decimal @map("defaultDeliveryFeePercent")
   currency          String   @default("RSD")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  account           Account  @relation(fields: [accountId], references: [id])
+
+  @@unique([accountId])
 }

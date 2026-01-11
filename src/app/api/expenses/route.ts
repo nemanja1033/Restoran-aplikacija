@@ -8,6 +8,7 @@ import { parseISO } from "date-fns";
 import { getSettings } from "@/lib/data";
 import { Decimal } from "@prisma/client/runtime/client";
 import { calculatePdvBreakdown } from "@/lib/calculations";
+import { getSessionAccountId } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,15 +20,20 @@ export async function GET(request: Request) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const summary = searchParams.get("summary") === "1";
+  const accountId = await getSessionAccountId();
+  if (!accountId) {
+    return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+  }
 
   if (summary && !from && !to) {
     const [expenses, suppliers, settings] = await Promise.all([
       prisma.expense.findMany({
+        where: { accountId },
         include: { supplier: true, receipt: true },
         orderBy: { date: "desc" },
       }),
-      prisma.supplier.findMany({ orderBy: { number: "asc" } }),
-      getSettings(),
+      prisma.supplier.findMany({ where: { accountId }, orderBy: { number: "asc" } }),
+      getSettings(accountId),
     ]);
 
     return NextResponse.json({ expenses, suppliers, settings });
@@ -36,12 +42,13 @@ export async function GET(request: Request) {
   const where =
     from && to
       ? {
+          accountId,
           date: {
             gte: parseISO(from),
             lte: parseISO(to),
           },
         }
-      : undefined;
+      : { accountId };
 
   const expenses = await prisma.expense.findMany({
     where,
@@ -55,15 +62,33 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     await ensureSchema();
+    const accountId = await getSessionAccountId();
+    if (!accountId) {
+      return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
+    }
     const body = await request.json();
     const parsed = expenseSchema.parse(body);
 
-    const settings = await getSettings();
+    const settings = await getSettings(accountId);
     const supplier = parsed.supplierId
-      ? await prisma.supplier.findUnique({ where: { id: parsed.supplierId } })
+      ? await prisma.supplier.findFirst({ where: { id: parsed.supplierId, accountId } })
       : null;
+    if (parsed.supplierId && !supplier) {
+      return NextResponse.json({ error: "Dobavljač nije pronađen." }, { status: 404 });
+    }
+    if (parsed.receiptId) {
+      const receipt = await prisma.receipt.findFirst({
+        where: { id: parsed.receiptId, accountId },
+      });
+      if (!receipt) {
+        return NextResponse.json({ error: "Račun nije pronađen." }, { status: 404 });
+      }
+    }
 
-    const pdvPercent = parsed.pdvPercent
+    const isSupplierPayment = parsed.type === "SUPPLIER_PAYMENT";
+    const pdvPercent = isSupplierPayment
+      ? new Decimal(0)
+      : parsed.pdvPercent
       ? decimalFromString(parsed.pdvPercent)
       : supplier?.pdvPercent ??
         (parsed.type === "SUPPLIER" || parsed.type === "OTHER"
@@ -78,6 +103,7 @@ export async function POST(request: Request) {
 
     const expense = await prisma.expense.create({
       data: {
+        accountId,
         date: parseDateString(parsed.date),
         supplierId: parsed.supplierId ?? null,
         grossAmount,
@@ -86,22 +112,11 @@ export async function POST(request: Request) {
         pdvAmount,
         type: parsed.type,
         note: parsed.note || null,
-        paidNow: Boolean(parsed.paidNow),
+        paidNow: isSupplierPayment ? true : Boolean(parsed.paidNow),
         receiptId: parsed.receiptId ?? null,
       },
       include: { supplier: true },
     });
-
-    if (expense.paidNow && expense.supplierId && expense.type === "SUPPLIER") {
-      await prisma.payment.create({
-        data: {
-          date: expense.date,
-          amount: expense.grossAmount,
-          supplierId: expense.supplierId,
-          note: "Plaćeno odmah",
-        },
-      });
-    }
 
     return NextResponse.json(expense);
   } catch {

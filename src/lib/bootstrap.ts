@@ -9,8 +9,28 @@ export async function ensureSchema() {
 
       await prisma.$transaction([
         prisma.$executeRawUnsafe(
+          `CREATE TABLE IF NOT EXISTS Account (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            slug TEXT NOT NULL UNIQUE,
+            createdAt TEXT NOT NULL DEFAULT (datetime('now'))
+          );`
+        ),
+        prisma.$executeRawUnsafe(
+          `CREATE TABLE IF NOT EXISTS User (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            accountId INTEGER NOT NULL,
+            username TEXT NOT NULL UNIQUE,
+            passwordHash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'admin',
+            createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (accountId) REFERENCES Account(id)
+          );`
+        ),
+        prisma.$executeRawUnsafe(
           `CREATE TABLE IF NOT EXISTS Supplier (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            accountId INTEGER NOT NULL DEFAULT 1,
             number INTEGER NOT NULL,
             name TEXT,
             category TEXT NOT NULL DEFAULT 'OTHER',
@@ -22,6 +42,7 @@ export async function ensureSchema() {
         prisma.$executeRawUnsafe(
           `CREATE TABLE IF NOT EXISTS Revenue (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            accountId INTEGER NOT NULL DEFAULT 1,
             date TEXT NOT NULL,
             amount NUMERIC NOT NULL,
             channel TEXT NOT NULL DEFAULT 'LOCAL',
@@ -36,6 +57,7 @@ export async function ensureSchema() {
         prisma.$executeRawUnsafe(
           `CREATE TABLE IF NOT EXISTS Expense (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            accountId INTEGER NOT NULL DEFAULT 1,
             date TEXT NOT NULL,
             amount NUMERIC NOT NULL,
             netAmount NUMERIC NOT NULL DEFAULT 0,
@@ -53,20 +75,9 @@ export async function ensureSchema() {
           );`
         ),
         prisma.$executeRawUnsafe(
-          `CREATE TABLE IF NOT EXISTS Payment (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT NOT NULL,
-            amount NUMERIC NOT NULL,
-            supplierId INTEGER,
-            note TEXT,
-            createdAt TEXT NOT NULL DEFAULT (datetime('now')),
-            updatedAt TEXT NOT NULL DEFAULT (datetime('now')),
-            FOREIGN KEY (supplierId) REFERENCES Supplier(id)
-          );`
-        ),
-        prisma.$executeRawUnsafe(
           `CREATE TABLE IF NOT EXISTS Receipt (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            accountId INTEGER NOT NULL DEFAULT 1,
             fileName TEXT NOT NULL,
             mimeType TEXT NOT NULL,
             size INTEGER NOT NULL,
@@ -76,7 +87,8 @@ export async function ensureSchema() {
         ),
         prisma.$executeRawUnsafe(
           `CREATE TABLE IF NOT EXISTS Settings (
-            id INTEGER PRIMARY KEY NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            accountId INTEGER NOT NULL DEFAULT 1,
             openingBalance NUMERIC NOT NULL DEFAULT 0,
             defaultPdvPercent NUMERIC NOT NULL DEFAULT 0,
             defaultDeliveryFeePercent NUMERIC NOT NULL DEFAULT 0,
@@ -88,18 +100,23 @@ export async function ensureSchema() {
       ]);
 
       const alterStatements = [
+        `ALTER TABLE Supplier ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
         `ALTER TABLE Supplier ADD COLUMN category TEXT NOT NULL DEFAULT 'OTHER';`,
         `ALTER TABLE Supplier ADD COLUMN pdvPercent NUMERIC;`,
+        `ALTER TABLE Revenue ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
         `ALTER TABLE Revenue ADD COLUMN channel TEXT NOT NULL DEFAULT 'LOCAL';`,
         `ALTER TABLE Revenue ADD COLUMN feePercent NUMERIC NOT NULL DEFAULT 0;`,
         `ALTER TABLE Revenue ADD COLUMN feeAmount NUMERIC NOT NULL DEFAULT 0;`,
         `ALTER TABLE Revenue ADD COLUMN netAmount NUMERIC NOT NULL DEFAULT 0;`,
+        `ALTER TABLE Expense ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
         `ALTER TABLE Expense ADD COLUMN netAmount NUMERIC NOT NULL DEFAULT 0;`,
         `ALTER TABLE Expense ADD COLUMN pdvPercent NUMERIC NOT NULL DEFAULT 0;`,
         `ALTER TABLE Expense ADD COLUMN pdvAmount NUMERIC NOT NULL DEFAULT 0;`,
         `ALTER TABLE Expense ADD COLUMN type TEXT NOT NULL DEFAULT 'SUPPLIER';`,
         `ALTER TABLE Expense ADD COLUMN paidNow BOOLEAN NOT NULL DEFAULT 0;`,
         `ALTER TABLE Expense ADD COLUMN receiptId INTEGER;`,
+        `ALTER TABLE Receipt ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
+        `ALTER TABLE Settings ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
         `ALTER TABLE Settings ADD COLUMN defaultPdvPercent NUMERIC NOT NULL DEFAULT 0;`,
       ];
 
@@ -112,8 +129,12 @@ export async function ensureSchema() {
       }
 
       await prisma.$executeRawUnsafe(
-        `INSERT OR IGNORE INTO Settings (id, openingBalance, defaultPdvPercent, defaultDeliveryFeePercent, currency, createdAt, updatedAt)
-         VALUES (1, 0, 0, 0, 'RSD', datetime('now'), datetime('now'));`
+        `INSERT OR IGNORE INTO Account (id, name, slug, createdAt)
+         VALUES (1, 'Flat Burger', 'flatburger', datetime('now'));`
+      );
+      await prisma.$executeRawUnsafe(
+        `INSERT OR IGNORE INTO Settings (id, accountId, openingBalance, defaultPdvPercent, defaultDeliveryFeePercent, currency, createdAt, updatedAt)
+         VALUES (1, 1, 0, 0, 0, 'RSD', datetime('now'), datetime('now'));`
       );
       await prisma.$executeRawUnsafe(
         `UPDATE Settings SET defaultPdvPercent = 0 WHERE defaultPdvPercent IS NULL;`

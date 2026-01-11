@@ -14,8 +14,7 @@ const REFRESH_MS = 30000;
 type LedgerRow = {
   date: string;
   incomeTotalNet: number;
-  expensesGross: number;
-  paymentsTotal: number;
+  expensesCashTotal: number;
   pdvTotal: number;
   runningBalance: number;
 };
@@ -108,18 +107,10 @@ export function DashboardPage() {
           }
         />
         <StatCard
-          title="Troškovi danas (obaveze)"
+          title="Troškovi danas (gotovina)"
           value={
             todayRow
-              ? formatCurrency(todayRow.expensesGross, currency)
-              : formatCurrency(0, currency)
-          }
-        />
-        <StatCard
-          title="Uplate danas"
-          value={
-            todayRow
-              ? formatCurrency(todayRow.paymentsTotal, currency)
+              ? formatCurrency(todayRow.expensesCashTotal, currency)
               : formatCurrency(0, currency)
           }
         />
