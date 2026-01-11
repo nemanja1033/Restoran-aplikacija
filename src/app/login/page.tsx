@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,17 +17,18 @@ export default function LoginPage() {
     event.preventDefault();
     setSubmitting(true);
     setError("");
-    const result = await signIn("credentials", {
-      redirect: false,
-      username,
-      password,
+    const result = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
     });
     setSubmitting(false);
-    if (result?.ok) {
+    if (result.ok) {
       router.push("/");
       return;
     }
-    setError("Neispravna šifra ili lozinka.");
+    const data = await result.json().catch(() => null);
+    setError(data?.error ?? "Neispravna šifra ili lozinka.");
   };
 
   return (

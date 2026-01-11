@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Wallet,
@@ -26,6 +25,7 @@ export const navItems = [
 
 function SidebarContent() {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,7 +53,10 @@ function SidebarContent() {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => signOut({ callbackUrl: "/login" })}
+        onClick={async () => {
+          await fetch("/api/logout", { method: "POST" });
+          router.push("/login");
+        }}
       >
         Odjava
       </Button>
