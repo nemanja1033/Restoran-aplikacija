@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { revenueSchema } from "@/lib/validations";
+import { incomeSchema } from "@/lib/validations";
 import { apiFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,7 @@ export type RevenueFormValues = {
   id?: number;
   date: string;
   amount: string;
-  type: "DELIVERY" | "IN_STORE";
+  channel: "DELIVERY" | "LOCAL";
   feePercent?: string;
   note?: string;
 };
@@ -34,7 +34,7 @@ export function RevenueForm({
     () => ({
       date: initialData?.date ?? new Date().toISOString().slice(0, 10),
       amount: initialData?.amount ?? "",
-      type: initialData?.type ?? "IN_STORE",
+      channel: initialData?.channel ?? "LOCAL",
       feePercent: initialData?.feePercent ?? defaultFeePercent.toString(),
       note: initialData?.note ?? "",
       id: initialData?.id,
@@ -49,17 +49,17 @@ export function RevenueForm({
     watch,
     formState: { errors, isSubmitting },
   } = useForm<RevenueFormValues>({
-    resolver: zodResolver(revenueSchema),
+    resolver: zodResolver(incomeSchema),
     defaultValues,
   });
 
-  const type = watch("type");
+  const type = watch("channel");
 
   useEffect(() => {
     if (type === "DELIVERY" && !watch("feePercent")) {
       setValue("feePercent", defaultFeePercent.toString());
     }
-    if (type === "IN_STORE") {
+    if (type === "LOCAL") {
       setValue("feePercent", "0");
     }
   }, [type, defaultFeePercent, setValue, watch]);
@@ -68,7 +68,7 @@ export function RevenueForm({
     try {
       const payload = {
         ...values,
-        feePercent: values.type === "DELIVERY" ? values.feePercent : "0",
+        feePercent: values.channel === "DELIVERY" ? values.feePercent : "0",
       };
 
       if (values.id) {
@@ -93,7 +93,7 @@ export function RevenueForm({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-      <input type="hidden" {...register("type")} />
+      <input type="hidden" {...register("channel")} />
       <input type="hidden" {...register("feePercent")} />
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
@@ -116,13 +116,13 @@ export function RevenueForm({
           <Label>Tip prihoda</Label>
           <Select
             value={type}
-            onValueChange={(value) => setValue("type", value as RevenueFormValues["type"])}
+            onValueChange={(value) => setValue("channel", value as RevenueFormValues["channel"])}
           >
             <SelectTrigger>
               <SelectValue placeholder="Izaberite" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="IN_STORE">U lokalu</SelectItem>
+              <SelectItem value="LOCAL">U lokalu</SelectItem>
               <SelectItem value="DELIVERY">Dostava</SelectItem>
             </SelectContent>
           </Select>

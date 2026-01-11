@@ -4,19 +4,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  BookOpenText,
   Wallet,
   Settings,
   HandCoins,
+  Users,
+  Banknote,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dnevni-pregled", label: "Dnevni pregled", icon: BookOpenText },
+  { href: "/", label: "Kontrolna tabla", icon: LayoutDashboard },
   { href: "/prihodi", label: "Prihodi", icon: Wallet },
   { href: "/troskovi", label: "Troškovi", icon: HandCoins },
+  { href: "/dobavljaci", label: "Dobavljači", icon: Users },
+  { href: "/uplate", label: "Uplate", icon: Banknote },
+  { href: "/pdv-izvestaj", label: "PDV izveštaj", icon: FileText },
   { href: "/podesavanja", label: "Podešavanja", icon: Settings },
 ];
 

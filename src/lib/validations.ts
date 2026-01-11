@@ -18,31 +18,43 @@ export const supplierSchema = z.object({
     .int()
     .min(1, "Broj dobavljača mora biti veći od 0"),
   name: z.string().trim().optional(),
+  category: z.enum(["MEAT", "VEGETABLES", "PACKAGING", "OTHER"]),
+  pdvPercent: decimalString.optional(),
 });
 
-export const expenseSchema = z.object({
-  id: z.number().int().optional(),
-  date: dateStringSchema,
-  supplierId: z
-    .number()
-    .int()
-    .min(1, "Dobavljač je obavezan"),
-  amount: decimalString,
-  paymentMethod: z.enum(["ACCOUNT", "CASH"]),
-  note: z.string().trim().optional(),
-});
+export const expenseSchema = z
+  .object({
+    id: z.number().int().optional(),
+    date: dateStringSchema,
+    grossAmount: decimalString,
+    type: z.enum(["SUPPLIER", "SALARY", "OTHER"]),
+    supplierId: z.number().int().optional(),
+    pdvPercent: decimalString.optional(),
+    note: z.string().trim().optional(),
+    paidNow: z.boolean().optional(),
+    receiptId: z.number().int().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === "SUPPLIER" && !data.supplierId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Dobavljač je obavezan za ovaj tip troška",
+        path: ["supplierId"],
+      });
+    }
+  });
 
-export const revenueSchema = z
+export const incomeSchema = z
   .object({
     id: z.number().int().optional(),
     date: dateStringSchema,
     amount: decimalString,
-    type: z.enum(["DELIVERY", "IN_STORE"]),
+    channel: z.enum(["DELIVERY", "LOCAL"]),
     feePercent: decimalString.optional(),
     note: z.string().trim().optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.type === "DELIVERY") {
+    if (data.channel === "DELIVERY") {
       if (!data.feePercent) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -54,9 +66,19 @@ export const revenueSchema = z
   });
 
 export const settingsSchema = z.object({
-  openingBalance: decimalString,
-  defaultDeliveryFeePercent: decimalString,
+  startingBalance: decimalString,
+  defaultPdvPercent: decimalString,
+  deliveryFeePercent: decimalString,
   currency: z.string().trim(),
+});
+
+export const paymentSchema = z.object({
+  id: z.number().int().optional(),
+  date: dateStringSchema,
+  amount: decimalString,
+  supplierId: z.number().int().optional(),
+  note: z.string().trim().optional(),
+  allowOverpay: z.boolean().optional(),
 });
 
 export const dateRangeSchema = z.object({
@@ -66,6 +88,7 @@ export const dateRangeSchema = z.object({
 
 export type SupplierInput = z.infer<typeof supplierSchema>;
 export type ExpenseInput = z.infer<typeof expenseSchema>;
-export type RevenueInput = z.infer<typeof revenueSchema>;
+export type IncomeInput = z.infer<typeof incomeSchema>;
 export type SettingsInput = z.infer<typeof settingsSchema>;
+export type PaymentInput = z.infer<typeof paymentSchema>;
 export type DateRangeInput = z.infer<typeof dateRangeSchema>;

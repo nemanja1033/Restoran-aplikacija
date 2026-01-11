@@ -1,6 +1,7 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
+import { Decimal } from "@prisma/client/runtime/client";
 
 const databaseUrl =
   process.env.DATABASE_URL ??
@@ -25,148 +26,224 @@ async function main() {
   await prisma.settings.upsert({
     where: { id: 1 },
     update: {
-      openingBalance: new Prisma.Decimal("15000.00"),
-      defaultDeliveryFeePercent: new Prisma.Decimal("25.00"),
+      startingBalance: new Decimal("15000.00"),
+      defaultPdvPercent: new Decimal("20.00"),
+      deliveryFeePercent: new Decimal("25.00"),
       currency: "RSD",
     },
     create: {
       id: 1,
-      openingBalance: new Prisma.Decimal("15000.00"),
-      defaultDeliveryFeePercent: new Prisma.Decimal("25.00"),
+      startingBalance: new Decimal("15000.00"),
+      defaultPdvPercent: new Decimal("20.00"),
+      deliveryFeePercent: new Decimal("25.00"),
       currency: "RSD",
     },
   });
 
   await prisma.expense.deleteMany();
-  await prisma.revenue.deleteMany();
+  await prisma.payment.deleteMany();
+  await prisma.income.deleteMany();
   await prisma.supplier.deleteMany();
 
   const suppliers = await prisma.$transaction([
-    prisma.supplier.create({ data: { number: 1, name: "Meso" } }),
-    prisma.supplier.create({ data: { number: 2, name: "Peciva" } }),
-    prisma.supplier.create({ data: { number: 3, name: "Piće" } }),
+    prisma.supplier.create({
+      data: { number: 1, name: "Meso", category: "MEAT", pdvPercent: new Decimal("10") },
+    }),
+    prisma.supplier.create({
+      data: { number: 2, name: "Peciva", category: "PACKAGING", pdvPercent: null },
+    }),
+    prisma.supplier.create({
+      data: { number: 3, name: "Piće", category: "OTHER", pdvPercent: new Decimal("20") },
+    }),
   ]);
 
-  const revenues: Prisma.RevenueCreateManyInput[] = [
+  const incomes = [
     {
       date: dateOnly(6),
-      amount: new Prisma.Decimal("42000.00"),
-      type: "IN_STORE",
-      feePercent: new Prisma.Decimal("0"),
+      amount: new Decimal("42000.00"),
+      channel: "LOCAL",
+      feePercentApplied: new Decimal("0"),
+      feeAmount: new Decimal("0"),
+      netAmount: new Decimal("42000.00"),
       note: "Ručak u lokalu",
     },
     {
       date: dateOnly(6),
-      amount: new Prisma.Decimal("18000.00"),
-      type: "DELIVERY",
-      feePercent: new Prisma.Decimal("25"),
+      amount: new Decimal("18000.00"),
+      channel: "DELIVERY",
+      feePercentApplied: new Decimal("25"),
+      feeAmount: new Decimal("4500.00"),
+      netAmount: new Decimal("13500.00"),
       note: "Dostava - platforma A",
     },
     {
       date: dateOnly(5),
-      amount: new Prisma.Decimal("38000.00"),
-      type: "IN_STORE",
-      feePercent: new Prisma.Decimal("0"),
+      amount: new Decimal("38000.00"),
+      channel: "LOCAL",
+      feePercentApplied: new Decimal("0"),
+      feeAmount: new Decimal("0"),
+      netAmount: new Decimal("38000.00"),
       note: "Večera u lokalu",
     },
     {
       date: dateOnly(5),
-      amount: new Prisma.Decimal("22000.00"),
-      type: "DELIVERY",
-      feePercent: new Prisma.Decimal("22"),
+      amount: new Decimal("22000.00"),
+      channel: "DELIVERY",
+      feePercentApplied: new Decimal("22"),
+      feeAmount: new Decimal("4840.00"),
+      netAmount: new Decimal("17160.00"),
       note: "Dostava - platforma B",
     },
     {
       date: dateOnly(4),
-      amount: new Prisma.Decimal("45000.00"),
-      type: "IN_STORE",
-      feePercent: new Prisma.Decimal("0"),
+      amount: new Decimal("45000.00"),
+      channel: "LOCAL",
+      feePercentApplied: new Decimal("0"),
+      feeAmount: new Decimal("0"),
+      netAmount: new Decimal("45000.00"),
       note: "Specijalni meni",
     },
     {
       date: dateOnly(3),
-      amount: new Prisma.Decimal("26000.00"),
-      type: "DELIVERY",
-      feePercent: new Prisma.Decimal("25"),
+      amount: new Decimal("26000.00"),
+      channel: "DELIVERY",
+      feePercentApplied: new Decimal("25"),
+      feeAmount: new Decimal("6500.00"),
+      netAmount: new Decimal("19500.00"),
       note: "Dostava - vikend",
     },
     {
       date: dateOnly(2),
-      amount: new Prisma.Decimal("41000.00"),
-      type: "IN_STORE",
-      feePercent: new Prisma.Decimal("0"),
+      amount: new Decimal("41000.00"),
+      channel: "LOCAL",
+      feePercentApplied: new Decimal("0"),
+      feeAmount: new Decimal("0"),
+      netAmount: new Decimal("41000.00"),
       note: "Korporativni ručak",
     },
     {
       date: dateOnly(1),
-      amount: new Prisma.Decimal("19500.00"),
-      type: "DELIVERY",
-      feePercent: new Prisma.Decimal("24"),
+      amount: new Decimal("19500.00"),
+      channel: "DELIVERY",
+      feePercentApplied: new Decimal("24"),
+      feeAmount: new Decimal("4680.00"),
+      netAmount: new Decimal("14820.00"),
       note: "Dostava - platforma A",
     },
     {
       date: dateOnly(0),
-      amount: new Prisma.Decimal("47000.00"),
-      type: "IN_STORE",
-      feePercent: new Prisma.Decimal("0"),
+      amount: new Decimal("47000.00"),
+      channel: "LOCAL",
+      feePercentApplied: new Decimal("0"),
+      feeAmount: new Decimal("0"),
+      netAmount: new Decimal("47000.00"),
       note: "Današnji promet",
     },
   ];
 
-  const expenses: Prisma.ExpenseCreateManyInput[] = [
+  const expenses = [
     {
       date: dateOnly(6),
       supplierId: suppliers[0].id,
-      amount: new Prisma.Decimal("12000.00"),
-      paymentMethod: "ACCOUNT",
+      grossAmount: new Decimal("12000.00"),
+      netAmount: new Decimal("10909.09"),
+      pdvPercent: new Decimal("10"),
+      pdvAmount: new Decimal("1090.91"),
+      type: "SUPPLIER",
       note: "Sirovo meso",
+      paidNow: false,
     },
     {
       date: dateOnly(6),
       supplierId: suppliers[1].id,
-      amount: new Prisma.Decimal("3400.00"),
-      paymentMethod: "CASH",
+      grossAmount: new Decimal("3400.00"),
+      netAmount: new Decimal("2833.33"),
+      pdvPercent: new Decimal("20"),
+      pdvAmount: new Decimal("566.67"),
+      type: "SUPPLIER",
       note: "Peciva za sendviče",
+      paidNow: true,
     },
     {
       date: dateOnly(5),
       supplierId: suppliers[2].id,
-      amount: new Prisma.Decimal("5200.00"),
-      paymentMethod: "ACCOUNT",
+      grossAmount: new Decimal("5200.00"),
+      netAmount: new Decimal("4333.33"),
+      pdvPercent: new Decimal("20"),
+      pdvAmount: new Decimal("866.67"),
+      type: "SUPPLIER",
       note: "Sokovi i voda",
+      paidNow: false,
     },
     {
       date: dateOnly(4),
       supplierId: suppliers[1].id,
-      amount: new Prisma.Decimal("4600.00"),
-      paymentMethod: "ACCOUNT",
+      grossAmount: new Decimal("4600.00"),
+      netAmount: new Decimal("3833.33"),
+      pdvPercent: new Decimal("20"),
+      pdvAmount: new Decimal("766.67"),
+      type: "SUPPLIER",
       note: "Hleb i peciva",
+      paidNow: false,
     },
     {
       date: dateOnly(3),
       supplierId: suppliers[0].id,
-      amount: new Prisma.Decimal("9800.00"),
-      paymentMethod: "ACCOUNT",
+      grossAmount: new Decimal("9800.00"),
+      netAmount: new Decimal("8909.09"),
+      pdvPercent: new Decimal("10"),
+      pdvAmount: new Decimal("890.91"),
+      type: "SUPPLIER",
       note: "Piletina",
+      paidNow: false,
     },
     {
       date: dateOnly(2),
       supplierId: suppliers[2].id,
-      amount: new Prisma.Decimal("3100.00"),
-      paymentMethod: "CASH",
+      grossAmount: new Decimal("3100.00"),
+      netAmount: new Decimal("2583.33"),
+      pdvPercent: new Decimal("20"),
+      pdvAmount: new Decimal("516.67"),
+      type: "SUPPLIER",
       note: "Sokovi - gotovina",
+      paidNow: true,
     },
     {
       date: dateOnly(1),
       supplierId: suppliers[0].id,
-      amount: new Prisma.Decimal("11500.00"),
-      paymentMethod: "ACCOUNT",
+      grossAmount: new Decimal("11500.00"),
+      netAmount: new Decimal("10454.55"),
+      pdvPercent: new Decimal("10"),
+      pdvAmount: new Decimal("1045.45"),
+      type: "SUPPLIER",
       note: "Riba",
+      paidNow: false,
+    },
+    {
+      date: dateOnly(1),
+      grossAmount: new Decimal("60000.00"),
+      netAmount: new Decimal("60000.00"),
+      pdvPercent: new Decimal("0"),
+      pdvAmount: new Decimal("0"),
+      type: "SALARY",
+      note: "Isplata plata",
+      paidNow: false,
     },
   ];
 
-  await prisma.revenue.createMany({ data: revenues });
+  await prisma.income.createMany({ data: incomes });
   await prisma.expense.createMany({ data: expenses });
+
+  await prisma.payment.createMany({
+    data: [
+      {
+        date: dateOnly(5),
+        amount: new Decimal("15000.00"),
+        supplierId: suppliers[0].id,
+        note: "Uplata dobavljaču",
+      },
+    ],
+  });
 }
 
 main()

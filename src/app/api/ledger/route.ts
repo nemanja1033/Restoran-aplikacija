@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getExpenses, getRevenues, getSettings } from "@/lib/data";
+import { getExpenses, getIncomes, getPayments, getSettings } from "@/lib/data";
 import { buildDailyLedger } from "@/lib/ledger";
 import { format, subDays } from "date-fns";
 
@@ -23,15 +23,17 @@ export async function GET(request: Request) {
   const { from, to } = getRange(searchParams);
 
   const settings = await getSettings();
-  const [revenues, expenses] = await Promise.all([
-    getRevenues(from, to),
+  const [incomes, expenses, payments] = await Promise.all([
+    getIncomes(from, to),
     getExpenses(from, to),
+    getPayments(from, to),
   ]);
 
   const ledger = buildDailyLedger({
-    openingBalance: settings.openingBalance,
-    revenues,
+    startingBalance: settings.startingBalance,
+    incomes,
     expenses,
+    payments,
     from,
     to,
   });

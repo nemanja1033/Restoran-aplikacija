@@ -6,6 +6,8 @@ import { decimalFromString } from "@/lib/prisma-helpers";
 import { parseDateString } from "@/lib/format";
 import { parseISO } from "date-fns";
 import { getSettings } from "@/lib/data";
+import { Decimal } from "@prisma/client/runtime/client";
+import { calculatePdvBreakdown } from "@/lib/calculations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +23,7 @@ export async function GET(request: Request) {
   if (summary && !from && !to) {
     const [expenses, suppliers, settings] = await Promise.all([
       prisma.expense.findMany({
-        include: { supplier: true },
+        include: { supplier: true, receipt: true },
         orderBy: { date: "desc" },
       }),
       prisma.supplier.findMany({ orderBy: { number: "asc" } }),
@@ -43,7 +45,7 @@ export async function GET(request: Request) {
 
   const expenses = await prisma.expense.findMany({
     where,
-    include: { supplier: true },
+    include: { supplier: true, receipt: true },
     orderBy: { date: "desc" },
   });
 
@@ -56,16 +58,50 @@ export async function POST(request: Request) {
     const body = await request.json();
     const parsed = expenseSchema.parse(body);
 
+    const settings = await getSettings();
+    const supplier = parsed.supplierId
+      ? await prisma.supplier.findUnique({ where: { id: parsed.supplierId } })
+      : null;
+
+    const pdvPercent = parsed.pdvPercent
+      ? decimalFromString(parsed.pdvPercent)
+      : supplier?.pdvPercent ??
+        (parsed.type === "SUPPLIER" || parsed.type === "OTHER"
+          ? settings.defaultPdvPercent
+          : new Decimal(0));
+
+    const grossAmount = decimalFromString(parsed.grossAmount);
+    const { netAmount, pdvAmount } = calculatePdvBreakdown(
+      grossAmount,
+      pdvPercent
+    );
+
     const expense = await prisma.expense.create({
       data: {
         date: parseDateString(parsed.date),
-        supplierId: parsed.supplierId,
-        amount: decimalFromString(parsed.amount),
-        paymentMethod: parsed.paymentMethod,
+        supplierId: parsed.supplierId ?? null,
+        grossAmount,
+        netAmount,
+        pdvPercent,
+        pdvAmount,
+        type: parsed.type,
         note: parsed.note || null,
+        paidNow: Boolean(parsed.paidNow),
+        receiptId: parsed.receiptId ?? null,
       },
       include: { supplier: true },
     });
+
+    if (expense.paidNow && expense.supplierId && expense.type === "SUPPLIER") {
+      await prisma.payment.create({
+        data: {
+          date: expense.date,
+          amount: expense.grossAmount,
+          supplierId: expense.supplierId,
+          note: "Plaćeno odmah",
+        },
+      });
+    }
 
     return NextResponse.json(expense);
   } catch {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -15,37 +15,49 @@ import { Textarea } from "@/components/ui/textarea";
 export type ExpenseFormValues = {
   id?: number;
   date: string;
-  supplierId: number;
-  amount: string;
-  paymentMethod: "ACCOUNT" | "CASH";
+  grossAmount: string;
+  type: "SUPPLIER" | "SALARY" | "OTHER";
+  supplierId?: number;
+  pdvPercent?: string;
+  paidNow?: boolean;
   note?: string;
+  receiptId?: number;
+  receiptPath?: string;
 };
 
 export type SupplierOption = {
   id: number;
   number: number;
   name: string | null;
+  category?: string;
+  pdvPercent?: string | null;
 };
 
 export function ExpenseForm({
   suppliers,
+  defaultPdvPercent,
   initialData,
   onSuccess,
 }: {
   suppliers: SupplierOption[];
+  defaultPdvPercent: number;
   initialData?: ExpenseFormValues;
   onSuccess?: () => void;
 }) {
   const defaultValues = useMemo<ExpenseFormValues>(
     () => ({
       date: initialData?.date ?? new Date().toISOString().slice(0, 10),
-      supplierId: initialData?.supplierId ?? suppliers[0]?.id ?? 0,
-      amount: initialData?.amount ?? "",
-      paymentMethod: initialData?.paymentMethod ?? "ACCOUNT",
+      supplierId: initialData?.supplierId ?? suppliers[0]?.id ?? undefined,
+      grossAmount: initialData?.grossAmount ?? "",
+      type: initialData?.type ?? (suppliers.length > 0 ? "SUPPLIER" : "OTHER"),
+      pdvPercent: initialData?.pdvPercent ?? defaultPdvPercent.toString(),
+      paidNow: initialData?.paidNow ?? false,
       note: initialData?.note ?? "",
+      receiptId: initialData?.receiptId,
+      receiptPath: initialData?.receiptPath,
       id: initialData?.id,
     }),
-    [initialData, suppliers]
+    [defaultPdvPercent, initialData, suppliers]
   );
 
   const {
@@ -59,27 +71,58 @@ export function ExpenseForm({
     defaultValues,
   });
 
+  const [uploading, setUploading] = useState(false);
+  const [receiptPath, setReceiptPath] = useState(defaultValues.receiptPath);
+
   const supplierId = watch("supplierId");
-  const paymentMethod = watch("paymentMethod");
+  const expenseType = watch("type");
+  const pdvPercent = watch("pdvPercent");
 
   useEffect(() => {
-    if (!supplierId && suppliers.length > 0) {
+    if (!supplierId && expenseType === "SUPPLIER" && suppliers.length > 0) {
       setValue("supplierId", suppliers[0].id);
     }
-  }, [supplierId, suppliers, setValue]);
+  }, [supplierId, expenseType, suppliers, setValue]);
+
+  useEffect(() => {
+    if (expenseType !== "SUPPLIER") {
+      setValue("supplierId", undefined);
+      if (expenseType === "SALARY") {
+        setValue("pdvPercent", "0");
+      } else if (!pdvPercent) {
+        setValue("pdvPercent", defaultPdvPercent.toString());
+      }
+      return;
+    }
+
+    const selected = suppliers.find((supplier) => supplier.id === supplierId);
+    if (selected?.pdvPercent != null) {
+      setValue("pdvPercent", String(selected.pdvPercent));
+    } else if (!pdvPercent) {
+      setValue("pdvPercent", defaultPdvPercent.toString());
+    }
+  }, [defaultPdvPercent, expenseType, pdvPercent, supplierId, suppliers, setValue]);
+
+  useEffect(() => {
+    setReceiptPath(defaultValues.receiptPath);
+  }, [defaultValues.receiptPath]);
 
   const onSubmit = async (values: ExpenseFormValues) => {
     try {
+      const supplierId =
+        typeof values.supplierId === "number" && Number.isFinite(values.supplierId)
+          ? values.supplierId
+          : undefined;
       if (values.id) {
         await apiFetch(`/api/expenses/${values.id}`, {
           method: "PUT",
-          body: JSON.stringify(values),
+          body: JSON.stringify({ ...values, supplierId }),
         });
         toast.success("Trošak je ažuriran.");
       } else {
         await apiFetch("/api/expenses", {
           method: "POST",
-          body: JSON.stringify(values),
+          body: JSON.stringify({ ...values, supplierId }),
         });
         toast.success("Trošak je dodat.");
       }
@@ -90,10 +133,35 @@ export function ExpenseForm({
     }
   };
 
+  const handleReceiptUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await fetch("/api/receipts", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error();
+      }
+      const receipt = await response.json();
+      setValue("receiptId", receipt.id);
+      setReceiptPath(receipt.storagePath);
+      toast.success("Račun je dodat.");
+    } catch {
+      toast.error("Neuspešan upload računa.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
       <input type="hidden" {...register("supplierId", { valueAsNumber: true })} />
-      <input type="hidden" {...register("paymentMethod")} />
+      <input type="hidden" {...register("type")} />
+      <input type="hidden" {...register("pdvPercent")} />
+      <input type="hidden" {...register("receiptId", { valueAsNumber: true })} />
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="date">Datum</Label>
@@ -103,18 +171,46 @@ export function ExpenseForm({
           ) : null}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="amount">Iznos</Label>
-          <Input id="amount" type="text" placeholder="0.00" {...register("amount")} />
-          {errors.amount ? (
-            <p className="text-xs text-destructive">{errors.amount.message}</p>
+          <Label htmlFor="grossAmount">Iznos (bruto)</Label>
+          <Input id="grossAmount" type="text" placeholder="0.00" {...register("grossAmount")} />
+          {errors.grossAmount ? (
+            <p className="text-xs text-destructive">{errors.grossAmount.message}</p>
           ) : null}
         </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
+          <Label>Tip troška</Label>
+          <Select
+            value={expenseType}
+            onValueChange={(value) => setValue("type", value as ExpenseFormValues["type"])}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Izaberite" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="SUPPLIER">Dobavljač</SelectItem>
+              <SelectItem value="SALARY">Plate</SelectItem>
+              <SelectItem value="OTHER">Ostalo</SelectItem>
+            </SelectContent>
+          </Select>
+          {errors.type ? (
+            <p className="text-xs text-destructive">{errors.type.message}</p>
+          ) : null}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="pdvPercent">PDV (%)</Label>
+          <Input id="pdvPercent" type="text" {...register("pdvPercent")} />
+          {errors.pdvPercent ? (
+            <p className="text-xs text-destructive">{errors.pdvPercent.message}</p>
+          ) : null}
+        </div>
+      </div>
+      {expenseType === "SUPPLIER" ? (
+        <div className="space-y-2">
           <Label>Dobavljač</Label>
           <Select
-            value={String(supplierId)}
+            value={supplierId ? String(supplierId) : ""}
             onValueChange={(value) => setValue("supplierId", Number(value))}
           >
             <SelectTrigger>
@@ -134,23 +230,45 @@ export function ExpenseForm({
             <p className="text-xs text-destructive">{errors.supplierId.message}</p>
           ) : null}
         </div>
-        <div className="space-y-2">
-          <Label>Način plaćanja</Label>
-          <Select
-            value={paymentMethod}
-            onValueChange={(value) =>
-              setValue("paymentMethod", value as ExpenseFormValues["paymentMethod"])
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Izaberite" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ACCOUNT">Račun</SelectItem>
-              <SelectItem value="CASH">Gotovina</SelectItem>
-            </SelectContent>
-          </Select>
+      ) : null}
+      {expenseType === "SUPPLIER" ? (
+        <div className="flex items-center gap-2 text-sm">
+          <input
+            id="paidNow"
+            type="checkbox"
+            className="h-4 w-4"
+            {...register("paidNow")}
+          />
+          <Label htmlFor="paidNow">Plaćeno odmah?</Label>
         </div>
+      ) : null}
+      <div className="space-y-2">
+        <Label htmlFor="receipt">Račun (slika ili PDF)</Label>
+        <Input
+          id="receipt"
+          type="file"
+          accept="image/*,application/pdf"
+          capture="environment"
+          disabled={uploading}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) {
+              handleReceiptUpload(file);
+            }
+          }}
+        />
+        {receiptPath ? (
+          <a
+            href={receiptPath}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-primary underline"
+          >
+            Pogledaj račun
+          </a>
+        ) : (
+          <p className="text-xs text-muted-foreground">Nije dodat račun.</p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="note">Beleška</Label>

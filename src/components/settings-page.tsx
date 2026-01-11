@@ -22,8 +22,9 @@ import {
 import { toast } from "sonner";
 
 export type SettingsFormValues = {
-  openingBalance: string;
-  defaultDeliveryFeePercent: string;
+  startingBalance: string;
+  defaultPdvPercent: string;
+  deliveryFeePercent: string;
   currency: string;
 };
 
@@ -46,8 +47,9 @@ export function SettingsPage() {
   } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
-      openingBalance: "0",
-      defaultDeliveryFeePercent: "0",
+      startingBalance: "0",
+      defaultPdvPercent: "0",
+      deliveryFeePercent: "0",
       currency: "RSD",
     },
   });
@@ -57,8 +59,9 @@ export function SettingsPage() {
       try {
         const data = await apiFetch<SettingsFormValues>("/api/settings");
         reset({
-          openingBalance: data.openingBalance,
-          defaultDeliveryFeePercent: data.defaultDeliveryFeePercent,
+          startingBalance: data.startingBalance,
+          defaultPdvPercent: data.defaultPdvPercent,
+          deliveryFeePercent: data.deliveryFeePercent,
           currency: data.currency,
         });
       } catch {
@@ -127,19 +130,26 @@ export function SettingsPage() {
           <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="openingBalance">Početno stanje računa</Label>
-                <Input id="openingBalance" type="text" {...register("openingBalance")} />
-                {errors.openingBalance ? (
-                  <p className="text-xs text-destructive">{errors.openingBalance.message}</p>
+                <Label htmlFor="startingBalance">Početno stanje računa</Label>
+                <Input id="startingBalance" type="text" {...register("startingBalance")} />
+                {errors.startingBalance ? (
+                  <p className="text-xs text-destructive">{errors.startingBalance.message}</p>
                 ) : null}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="defaultDeliveryFeePercent">Podrazumevana provizija dostave (%)</Label>
-                <Input id="defaultDeliveryFeePercent" type="text" {...register("defaultDeliveryFeePercent")} />
-                {errors.defaultDeliveryFeePercent ? (
-                  <p className="text-xs text-destructive">{errors.defaultDeliveryFeePercent.message}</p>
+                <Label htmlFor="deliveryFeePercent">Podrazumevana provizija dostave (%)</Label>
+                <Input id="deliveryFeePercent" type="text" {...register("deliveryFeePercent")} />
+                {errors.deliveryFeePercent ? (
+                  <p className="text-xs text-destructive">{errors.deliveryFeePercent.message}</p>
                 ) : null}
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="defaultPdvPercent">Podrazumevani PDV (%)</Label>
+              <Input id="defaultPdvPercent" type="text" {...register("defaultPdvPercent")} />
+              {errors.defaultPdvPercent ? (
+                <p className="text-xs text-destructive">{errors.defaultPdvPercent.message}</p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label htmlFor="currency">Valuta</Label>

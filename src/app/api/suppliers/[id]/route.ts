@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { ensureSchema } from "@/lib/bootstrap";
 import { supplierSchema } from "@/lib/validations";
+import { decimalFromString } from "@/lib/prisma-helpers";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,8 @@ export async function PUT(
       data: {
         number: parsed.number,
         name: parsed.name || null,
+        category: parsed.category,
+        pdvPercent: parsed.pdvPercent ? decimalFromString(parsed.pdvPercent) : null,
       },
     });
 

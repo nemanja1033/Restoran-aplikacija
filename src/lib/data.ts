@@ -10,8 +10,9 @@ export async function getSettings() {
     return prisma.settings.create({
       data: {
         id: 1,
-        openingBalance: new Decimal("0"),
-        defaultDeliveryFeePercent: new Decimal("0"),
+        startingBalance: new Decimal("0"),
+        defaultPdvPercent: new Decimal("0"),
+        deliveryFeePercent: new Decimal("0"),
         currency: "RSD",
       },
     });
@@ -24,9 +25,9 @@ export async function getSuppliers() {
   return prisma.supplier.findMany({ orderBy: { number: "asc" } });
 }
 
-export async function getRevenues(from: string, to: string) {
+export async function getIncomes(from: string, to: string) {
   await ensureSchema();
-  return prisma.revenue.findMany({
+  return prisma.income.findMany({
     where: {
       date: {
         gte: parseISO(from),
@@ -46,6 +47,20 @@ export async function getExpenses(from: string, to: string) {
         lte: parseISO(to),
       },
     },
+    include: { supplier: true, receipt: true },
+    orderBy: { date: "asc" },
+  });
+}
+
+export async function getPayments(from: string, to: string) {
+  await ensureSchema();
+  return prisma.payment.findMany({
+    where: {
+      date: {
+        gte: parseISO(from),
+        lte: parseISO(to),
+      },
+    },
     include: { supplier: true },
     orderBy: { date: "asc" },
   });
@@ -54,14 +69,14 @@ export async function getExpenses(from: string, to: string) {
 export async function getExpensesAll() {
   await ensureSchema();
   return prisma.expense.findMany({
-    include: { supplier: true },
+    include: { supplier: true, receipt: true },
     orderBy: { date: "desc" },
   });
 }
 
-export async function getRevenuesAll() {
+export async function getIncomesAll() {
   await ensureSchema();
-  return prisma.revenue.findMany({
+  return prisma.income.findMany({
     orderBy: { date: "desc" },
   });
 }

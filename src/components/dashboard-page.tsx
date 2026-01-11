@@ -13,9 +13,10 @@ const REFRESH_MS = 30000;
 
 type LedgerRow = {
   date: string;
-  totalRevenueNet: number;
-  expensesFromAccount: number;
-  deliveryFeeTotal: number;
+  incomeTotalNet: number;
+  expensesGross: number;
+  paymentsTotal: number;
+  pdvTotal: number;
   runningBalance: number;
 };
 
@@ -23,9 +24,14 @@ type Settings = {
   currency: string;
 };
 
+type SupplierSummaryResponse = {
+  totalOutstanding: number;
+};
+
 export function DashboardPage() {
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [supplierDebt, setSupplierDebt] = useState(0);
 
   const range = useMemo(() => {
     const today = new Date();
@@ -36,11 +42,15 @@ export function DashboardPage() {
   }, []);
 
   const loadData = useCallback(async () => {
-    const data = await apiFetch<{ settings: Settings; ledger: LedgerRow[] }>(
-      `/api/ledger?from=${range.from}&to=${range.to}`
-    );
-    setLedger(data.ledger);
-    setSettings(data.settings);
+    const [ledgerData, supplierData] = await Promise.all([
+      apiFetch<{ settings: Settings; ledger: LedgerRow[] }>(
+        `/api/ledger?from=${range.from}&to=${range.to}`
+      ),
+      apiFetch<SupplierSummaryResponse>("/api/suppliers?summary=1"),
+    ]);
+    setLedger(ledgerData.ledger);
+    setSettings(ledgerData.settings);
+    setSupplierDebt(supplierData.totalOutstanding);
   }, [range.from, range.to]);
 
   useEffect(() => {
@@ -76,7 +86,7 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <StatCard
           title="Trenutno stanje računa"
           value={
@@ -87,28 +97,40 @@ export function DashboardPage() {
           hint="Uključuje sve promene do današnjeg dana"
         />
         <StatCard
-          title="Neto prihod danas"
+          title="Prihodi danas"
           value={
             todayRow
-              ? formatCurrency(todayRow.totalRevenueNet, currency)
+              ? formatCurrency(todayRow.incomeTotalNet, currency)
               : formatCurrency(0, currency)
           }
         />
         <StatCard
-          title="Troškovi danas (sa računa)"
+          title="Troškovi danas (obaveze)"
           value={
             todayRow
-              ? formatCurrency(todayRow.expensesFromAccount, currency)
+              ? formatCurrency(todayRow.expensesGross, currency)
               : formatCurrency(0, currency)
           }
         />
         <StatCard
-          title="Provizija dostave danas"
+          title="Uplate danas"
           value={
             todayRow
-              ? formatCurrency(todayRow.deliveryFeeTotal, currency)
+              ? formatCurrency(todayRow.paymentsTotal, currency)
               : formatCurrency(0, currency)
           }
+        />
+        <StatCard
+          title="PDV danas"
+          value={
+            todayRow
+              ? formatCurrency(todayRow.pdvTotal, currency)
+              : formatCurrency(0, currency)
+          }
+        />
+        <StatCard
+          title="Dugovanja dobavljačima"
+          value={formatCurrency(supplierDebt, currency)}
         />
       </div>
 

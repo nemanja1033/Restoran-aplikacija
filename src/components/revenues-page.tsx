@@ -30,14 +30,16 @@ type Revenue = {
   id: number;
   date: string;
   amount: string;
-  type: "DELIVERY" | "IN_STORE";
-  feePercent: string;
+  channel: "DELIVERY" | "LOCAL";
+  feePercentApplied: string;
+  feeAmount: string;
+  netAmount: string;
   note: string | null;
 };
 
 type Settings = {
   currency: string;
-  defaultDeliveryFeePercent: string;
+  deliveryFeePercent: string;
 };
 
 export function RevenuesPage() {
@@ -67,7 +69,7 @@ export function RevenuesPage() {
   }, [loadData]);
 
   const currency = settings?.currency ?? "RSD";
-  const defaultFee = Number(settings?.defaultDeliveryFeePercent ?? "0");
+  const defaultFee = Number(settings?.deliveryFeePercent ?? "0");
 
   const handleDelete = async () => {
     if (!deleting) return;
@@ -115,11 +117,11 @@ export function RevenuesPage() {
               revenues.map((revenue) => (
                 <TableRow key={revenue.id}>
                   <TableCell>{formatDate(revenue.date)}</TableCell>
-                  <TableCell>{revenue.type === "DELIVERY" ? "Dostava" : "Lokal"}</TableCell>
+                  <TableCell>{revenue.channel === "DELIVERY" ? "Dostava" : "Lokal"}</TableCell>
                   <TableCell>{formatCurrency(Number(revenue.amount), currency)}</TableCell>
                   <TableCell>
-                    {revenue.type === "DELIVERY"
-                      ? `${revenue.feePercent}%`
+                    {revenue.channel === "DELIVERY"
+                      ? `${revenue.feePercentApplied}%`
                       : "-"}
                   </TableCell>
                   <TableCell className="max-w-[240px] truncate">
@@ -127,19 +129,19 @@ export function RevenuesPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditing({
-                            id: revenue.id,
-                            date: revenue.date.slice(0, 10),
-                            amount: revenue.amount,
-                            type: revenue.type,
-                            feePercent: revenue.feePercent,
-                            note: revenue.note ?? "",
-                          });
-                          setOpen(true);
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditing({
+                                id: revenue.id,
+                                date: revenue.date.slice(0, 10),
+                                amount: revenue.amount,
+                                channel: revenue.channel,
+                                feePercent: revenue.feePercentApplied,
+                                note: revenue.note ?? "",
+                              });
+                              setOpen(true);
                         }}
                       >
                         Izmeni

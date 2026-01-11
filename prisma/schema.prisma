@@ -6,53 +6,96 @@ datasource db {
   provider = "sqlite"
 }
 
-enum RevenueType {
+enum IncomeChannel {
   DELIVERY
-  IN_STORE
+  LOCAL
 }
 
-enum PaymentMethod {
-  ACCOUNT
-  CASH
+enum ExpenseType {
+  SUPPLIER
+  SALARY
+  OTHER
+}
+
+enum SupplierCategory {
+  MEAT
+  VEGETABLES
+  PACKAGING
+  OTHER
 }
 
 model Supplier {
-  id        Int       @id @default(autoincrement())
-  number    Int
-  name      String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  expenses  Expense[]
+  id         Int              @id @default(autoincrement())
+  number     Int
+  name       String?
+  category   SupplierCategory @default(OTHER)
+  pdvPercent Decimal?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  expenses   Expense[]
+  payments   Payment[]
 }
 
-model Revenue {
-  id         Int         @id @default(autoincrement())
-  date       DateTime
-  amount     Decimal
-  type       RevenueType
-  feePercent Decimal
-  note       String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+model Income {
+  id               Int           @id @default(autoincrement())
+  date             DateTime
+  amount           Decimal
+  channel          IncomeChannel
+  feePercentApplied Decimal      @map("feePercent")
+  feeAmount        Decimal       @default(0)
+  netAmount        Decimal       @default(0)
+  note             String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@map("Revenue")
 }
 
 model Expense {
-  id            Int            @id @default(autoincrement())
-  date          DateTime
-  supplierId    Int
-  amount        Decimal
-  paymentMethod PaymentMethod
-  note          String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  supplier      Supplier       @relation(fields: [supplierId], references: [id])
+  id          Int         @id @default(autoincrement())
+  date        DateTime
+  grossAmount Decimal     @map("amount")
+  netAmount   Decimal     @default(0)
+  pdvPercent  Decimal     @default(0)
+  pdvAmount   Decimal     @default(0)
+  type        ExpenseType @default(SUPPLIER)
+  supplierId  Int?
+  note        String?
+  paidNow     Boolean     @default(false)
+  receiptId   Int?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  supplier    Supplier?   @relation(fields: [supplierId], references: [id])
+  receipt     Receipt?    @relation(fields: [receiptId], references: [id])
+}
+
+model Payment {
+  id         Int       @id @default(autoincrement())
+  date       DateTime
+  amount     Decimal
+  supplierId Int?
+  note       String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+}
+
+model Receipt {
+  id          Int       @id @default(autoincrement())
+  fileName    String
+  mimeType    String
+  size        Int
+  storagePath String
+  createdAt   DateTime  @default(now())
+  expenses    Expense[]
 }
 
 model Settings {
-  id                        Int      @id @default(1)
-  openingBalance            Decimal
-  defaultDeliveryFeePercent Decimal
-  currency                  String   @default("RSD")
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
+  id                Int      @id @default(1)
+  startingBalance   Decimal  @map("openingBalance")
+  defaultPdvPercent Decimal  @default(0)
+  deliveryFeePercent Decimal @map("defaultDeliveryFeePercent")
+  currency          String   @default("RSD")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

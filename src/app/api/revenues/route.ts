@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { ensureSchema } from "@/lib/bootstrap";
-import { revenueSchema } from "@/lib/validations";
+import { incomeSchema } from "@/lib/validations";
 import { decimalFromString } from "@/lib/prisma-helpers";
 import { parseDateString } from "@/lib/format";
 import { parseISO } from "date-fns";
 import { getSettings } from "@/lib/data";
+import { calculateDeliveryFee } from "@/lib/calculations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
 
   if (summary && !from && !to) {
     const [revenues, settings] = await Promise.all([
-      prisma.revenue.findMany({ orderBy: { date: "desc" } }),
+      prisma.income.findMany({ orderBy: { date: "desc" } }),
       getSettings(),
     ]);
 
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
         }
       : undefined;
 
-  const revenues = await prisma.revenue.findMany({
+  const revenues = await prisma.income.findMany({
     where,
     orderBy: { date: "desc" },
   });
@@ -49,19 +50,27 @@ export async function POST(request: Request) {
   try {
     await ensureSchema();
     const body = await request.json();
-    const parsed = revenueSchema.parse(body);
+    const parsed = incomeSchema.parse(body);
+    const settings = await getSettings();
 
     const feePercent =
-      parsed.type === "DELIVERY"
-        ? decimalFromString(parsed.feePercent ?? "0")
+      parsed.channel === "DELIVERY"
+        ? decimalFromString(parsed.feePercent ?? settings.deliveryFeePercent.toString())
         : decimalFromString("0");
+    const amount = decimalFromString(parsed.amount);
+    const { feeAmount, netAmount } =
+      parsed.channel === "DELIVERY"
+        ? calculateDeliveryFee(amount, feePercent)
+        : { feeAmount: decimalFromString("0"), netAmount: amount };
 
-    const revenue = await prisma.revenue.create({
+    const revenue = await prisma.income.create({
       data: {
         date: parseDateString(parsed.date),
-        amount: decimalFromString(parsed.amount),
-        type: parsed.type,
-        feePercent,
+        amount,
+        channel: parsed.channel,
+        feePercentApplied: feePercent,
+        feeAmount,
+        netAmount,
         note: parsed.note || null,
       },
     });

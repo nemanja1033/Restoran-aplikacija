@@ -14,7 +14,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { RevenueForm, RevenueFormValues } from "@/components/revenue-form";
@@ -25,37 +24,45 @@ const emptyLedger: LedgerRow[] = [];
 
 type LedgerRow = {
   date: string;
-  totalInStoreGross: number;
-  totalDeliveryGross: number;
-  deliveryFeeTotal: number;
-  totalRevenueNet: number;
-  expensesFromAccount: number;
-  expensesCash: number;
-  dailyNetChangeOnAccount: number;
+  incomeLocalNet: number;
+  incomeDeliveryNet: number;
+  incomeTotalNet: number;
+  expensesGross: number;
+  paymentsTotal: number;
+  pdvTotal: number;
   runningBalance: number;
 };
 
 type Settings = {
   currency: string;
-  defaultDeliveryFeePercent: string;
+  deliveryFeePercent: string;
+  defaultPdvPercent: string;
 };
 
 type Revenue = {
   id: number;
   date: string;
   amount: string;
-  type: "DELIVERY" | "IN_STORE";
-  feePercent: string;
+  channel: "DELIVERY" | "LOCAL";
+  feePercentApplied: string;
+  feeAmount: string;
+  netAmount: string;
   note: string | null;
 };
 
 type Expense = {
   id: number;
   date: string;
-  amount: string;
-  paymentMethod: "ACCOUNT" | "CASH";
+  grossAmount: string;
+  netAmount: string;
+  pdvPercent: string;
+  pdvAmount: string;
+  type: "SUPPLIER" | "SALARY" | "OTHER";
+  receiptId?: number | null;
   note: string | null;
-  supplier: SupplierOption;
+  supplier: SupplierOption | null;
+  paidNow: boolean;
+  receipt?: { storagePath: string };
 };
 
 export function DailyLedger() {
@@ -145,7 +152,8 @@ export function DailyLedger() {
   );
 
   const currency = settings?.currency ?? "RSD";
-  const defaultFee = Number(settings?.defaultDeliveryFeePercent ?? "0");
+  const defaultFee = Number(settings?.deliveryFeePercent ?? "0");
+  const defaultPdvPercent = Number(settings?.defaultPdvPercent ?? "0");
 
   const handleDelete = async () => {
     if (!showDelete) return;
@@ -180,26 +188,25 @@ export function DailyLedger() {
           <TableHeader>
             <TableRow>
               <TableHead>Datum</TableHead>
-              <TableHead>Prihod u lokalu</TableHead>
-              <TableHead>Prihod od dostave</TableHead>
-              <TableHead>Provizija dostave</TableHead>
-              <TableHead>Neto prihod</TableHead>
-              <TableHead>Troškovi sa računa</TableHead>
-              <TableHead>Troškovi gotovina</TableHead>
-              <TableHead>Neto promena</TableHead>
+              <TableHead>Prihod lokal (neto)</TableHead>
+              <TableHead>Prihod dostava (neto)</TableHead>
+              <TableHead>Prihod ukupno</TableHead>
+              <TableHead>Troškovi (obaveze)</TableHead>
+              <TableHead>Uplate</TableHead>
+              <TableHead>PDV</TableHead>
               <TableHead>Stanje na računu</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                   Učitavanje...
                 </TableCell>
               </TableRow>
             ) : ledger.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                   Nema podataka za izabrani period.
                 </TableCell>
               </TableRow>
@@ -211,17 +218,12 @@ export function DailyLedger() {
                   onClick={() => handleRowClick(row.date)}
                 >
                   <TableCell className="font-medium">{formatDate(row.date)}</TableCell>
-                  <TableCell>{formatCurrency(row.totalInStoreGross, currency)}</TableCell>
-                  <TableCell>{formatCurrency(row.totalDeliveryGross, currency)}</TableCell>
-                  <TableCell>{formatCurrency(row.deliveryFeeTotal, currency)}</TableCell>
-                  <TableCell>{formatCurrency(row.totalRevenueNet, currency)}</TableCell>
-                  <TableCell>{formatCurrency(row.expensesFromAccount, currency)}</TableCell>
-                  <TableCell>{formatCurrency(row.expensesCash, currency)}</TableCell>
-                  <TableCell>
-                    <Badge variant={row.dailyNetChangeOnAccount >= 0 ? "default" : "destructive"}>
-                      {formatCurrency(row.dailyNetChangeOnAccount, currency)}
-                    </Badge>
-                  </TableCell>
+                  <TableCell>{formatCurrency(row.incomeLocalNet, currency)}</TableCell>
+                  <TableCell>{formatCurrency(row.incomeDeliveryNet, currency)}</TableCell>
+                  <TableCell>{formatCurrency(row.incomeTotalNet, currency)}</TableCell>
+                  <TableCell>{formatCurrency(row.expensesGross, currency)}</TableCell>
+                  <TableCell>{formatCurrency(row.paymentsTotal, currency)}</TableCell>
+                  <TableCell>{formatCurrency(row.pdvTotal, currency)}</TableCell>
                   <TableCell className="font-semibold">
                     {formatCurrency(row.runningBalance, currency)}
                   </TableCell>
@@ -245,20 +247,20 @@ export function DailyLedger() {
               {currentRow ? (
                 <div className="mt-3 grid gap-2">
                   <div className="flex items-center justify-between">
-                    <span>Neto prihod</span>
-                    <span>{formatCurrency(currentRow.totalRevenueNet, currency)}</span>
+                    <span>Prihod ukupno</span>
+                    <span>{formatCurrency(currentRow.incomeTotalNet, currency)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Troškovi sa računa</span>
-                    <span>{formatCurrency(currentRow.expensesFromAccount, currency)}</span>
+                    <span>Troškovi (obaveze)</span>
+                    <span>{formatCurrency(currentRow.expensesGross, currency)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Troškovi gotovina</span>
-                    <span>{formatCurrency(currentRow.expensesCash, currency)}</span>
+                    <span>Uplate</span>
+                    <span>{formatCurrency(currentRow.paymentsTotal, currency)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span>Neto promena</span>
-                    <span>{formatCurrency(currentRow.dailyNetChangeOnAccount, currency)}</span>
+                    <span>PDV</span>
+                    <span>{formatCurrency(currentRow.pdvTotal, currency)}</span>
                   </div>
                 </div>
               ) : (
@@ -275,19 +277,19 @@ export function DailyLedger() {
                   <div key={revenue.id} className="flex items-center justify-between rounded-xl border p-3">
                     <div>
                       <p className="font-medium">
-                        {revenue.type === "DELIVERY" ? "Dostava" : "Lokal"}
+                        {revenue.channel === "DELIVERY" ? "Dostava" : "Lokal"}
                       </p>
                       <p className="text-xs text-muted-foreground">{revenue.note ?? "Bez beleške"}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">{formatCurrency(Number(revenue.amount), currency)}</p>
+                      <p className="font-semibold">{formatCurrency(Number(revenue.netAmount), currency)}</p>
                       <div className="mt-2 flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => setEditingRevenue({
                           id: revenue.id,
                           date: revenue.date.slice(0, 10),
                           amount: revenue.amount,
-                          type: revenue.type,
-                          feePercent: revenue.feePercent,
+                          channel: revenue.channel,
+                          feePercent: revenue.feePercentApplied,
                           note: revenue.note ?? "",
                         })}>
                           Izmeni
@@ -311,24 +313,34 @@ export function DailyLedger() {
                   <div key={expense.id} className="flex items-center justify-between rounded-xl border p-3">
                     <div>
                       <p className="font-medium">
-                        {expense.supplier.name
+                        {expense.supplier?.name
                           ? `${expense.supplier.name} (#${expense.supplier.number})`
-                          : `Dobavljač #${expense.supplier.number}`}
+                          : expense.supplier
+                          ? `Dobavljač #${expense.supplier.number}`
+                          : "Ostalo"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {expense.paymentMethod === "ACCOUNT" ? "Račun" : "Gotovina"}
+                        {expense.type === "SUPPLIER"
+                          ? "Dobavljač"
+                          : expense.type === "SALARY"
+                          ? "Plate"
+                          : "Ostalo"}
                         {expense.note ? ` • ${expense.note}` : ""}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">{formatCurrency(Number(expense.amount), currency)}</p>
+                      <p className="font-semibold">{formatCurrency(Number(expense.grossAmount), currency)}</p>
                       <div className="mt-2 flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => setEditingExpense({
                           id: expense.id,
                           date: expense.date.slice(0, 10),
-                          amount: expense.amount,
-                          supplierId: expense.supplier.id,
-                          paymentMethod: expense.paymentMethod,
+                          grossAmount: expense.grossAmount,
+                          supplierId: expense.supplier?.id,
+                          type: expense.type,
+                          pdvPercent: expense.pdvPercent,
+                          paidNow: expense.paidNow,
+                          receiptId: expense.receiptId ?? undefined,
+                          receiptPath: expense.receipt?.storagePath,
                           note: expense.note ?? "",
                         })}>
                           Izmeni
@@ -375,6 +387,7 @@ export function DailyLedger() {
           {editingExpense ? (
             <ExpenseForm
               suppliers={suppliers}
+              defaultPdvPercent={defaultPdvPercent}
               initialData={editingExpense}
               onSuccess={() => {
                 setEditingExpense(null);

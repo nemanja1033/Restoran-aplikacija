@@ -8,8 +8,10 @@ export async function POST() {
   try {
     await ensureSchema();
     await prisma.$transaction([
-      prisma.revenue.deleteMany(),
+      prisma.income.deleteMany(),
       prisma.expense.deleteMany(),
+      prisma.payment.deleteMany(),
+      prisma.receipt.deleteMany(),
     ]);
     return NextResponse.json({ success: true });
   } catch {

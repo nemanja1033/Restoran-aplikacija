@@ -12,7 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -25,20 +24,26 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ExpenseForm, ExpenseFormValues, SupplierOption } from "@/components/expense-form";
-import { SupplierForm, SupplierFormValues } from "@/components/supplier-form";
 import { toast } from "sonner";
 
 type Expense = {
   id: number;
   date: string;
-  amount: string;
-  paymentMethod: "ACCOUNT" | "CASH";
+  grossAmount: string;
+  netAmount: string;
+  pdvPercent: string;
+  pdvAmount: string;
+  type: "SUPPLIER" | "SALARY" | "OTHER";
+  receiptId?: number | null;
   note: string | null;
-  supplier: SupplierOption;
+  supplier: SupplierOption | null;
+  paidNow: boolean;
+  receipt?: { storagePath: string };
 };
 
 type Settings = {
   currency: string;
+  defaultPdvPercent: string;
 };
 
 export function ExpensesPage() {
@@ -46,10 +51,8 @@ export function ExpensesPage() {
   const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
-  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<ExpenseFormValues | null>(null);
-  const [editingSupplier, setEditingSupplier] = useState<SupplierFormValues | null>(null);
-  const [deleting, setDeleting] = useState<{ type: "expense" | "supplier"; id: number } | null>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -73,12 +76,12 @@ export function ExpensesPage() {
   }, [loadData]);
 
   const currency = settings?.currency ?? "RSD";
+  const defaultPdvPercent = Number(settings?.defaultPdvPercent ?? "0");
 
   const handleDelete = async () => {
     if (!deleting) return;
     try {
-      const url = deleting.type === "expense" ? `/api/expenses/${deleting.id}` : `/api/suppliers/${deleting.id}`;
-      await apiFetch(url, { method: "DELETE" });
+      await apiFetch(`/api/expenses/${deleting}`, { method: "DELETE" });
       toast.success("Stavka je obrisana.");
       setDeleting(null);
       loadData();
@@ -90,155 +93,97 @@ export function ExpensesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-sm text-muted-foreground">Upravljanje troškovima i dobavljačima</p>
-        <h2 className="text-2xl font-semibold">Troškovi / Dobavljači</h2>
+        <p className="text-sm text-muted-foreground">Upravljanje troškovima</p>
+        <h2 className="text-2xl font-semibold">Troškovi</h2>
       </div>
 
-      <Tabs defaultValue="expenses" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="expenses">Troškovi</TabsTrigger>
-          <TabsTrigger value="suppliers">Dobavljači</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="expenses" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">Unos i pregled troškova</div>
-            <Button onClick={() => setExpenseDialogOpen(true)}>Dodaj trošak</Button>
-          </div>
-          <div className="rounded-2xl border bg-card">
-            <div className="overflow-x-auto">
-              <Table className="min-w-[900px]">
-              <TableHeader>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">Unos i pregled troškova</div>
+          <Button onClick={() => setExpenseDialogOpen(true)}>Dodaj trošak</Button>
+        </div>
+        <div className="rounded-2xl border bg-card">
+          <div className="overflow-x-auto">
+            <Table className="min-w-[900px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Datum</TableHead>
+                <TableHead>Dobavljač</TableHead>
+                <TableHead>Iznos (bruto)</TableHead>
+                <TableHead>Tip</TableHead>
+                <TableHead>Beleška</TableHead>
+                <TableHead className="text-right">Akcije</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {expenses.length === 0 ? (
                 <TableRow>
-                  <TableHead>Datum</TableHead>
-                  <TableHead>Dobavljač</TableHead>
-                  <TableHead>Iznos</TableHead>
-                  <TableHead>Način</TableHead>
-                  <TableHead>Beleška</TableHead>
-                  <TableHead className="text-right">Akcije</TableHead>
+                  <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
+                    Još nema unetih troškova.
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {expenses.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
-                      Još nema unetih troškova.
+              ) : (
+                expenses.map((expense) => (
+                  <TableRow key={expense.id}>
+                    <TableCell>{formatDate(expense.date)}</TableCell>
+                    <TableCell>
+                      {expense.supplier?.name
+                        ? `${expense.supplier.name} (#${expense.supplier.number})`
+                        : expense.supplier
+                        ? `Dobavljač #${expense.supplier.number}`
+                        : "-"}
+                    </TableCell>
+                    <TableCell>{formatCurrency(Number(expense.grossAmount), currency)}</TableCell>
+                    <TableCell>
+                      {expense.type === "SUPPLIER"
+                        ? "Dobavljač"
+                        : expense.type === "SALARY"
+                        ? "Plate"
+                        : "Ostalo"}
+                    </TableCell>
+                    <TableCell className="max-w-[240px] truncate">
+                      {expense.note ?? "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingExpense({
+                              id: expense.id,
+                              date: expense.date.slice(0, 10),
+                              grossAmount: expense.grossAmount,
+                              supplierId: expense.supplier?.id,
+                              type: expense.type,
+                              pdvPercent: expense.pdvPercent,
+                              paidNow: expense.paidNow,
+                              receiptId: expense.receiptId ?? undefined,
+                              receiptPath: expense.receipt?.storagePath,
+                              note: expense.note ?? "",
+                            });
+                            setExpenseDialogOpen(true);
+                          }}
+                        >
+                          Izmeni
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setDeleting(expense.id)}
+                        >
+                          Obriši
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  expenses.map((expense) => (
-                    <TableRow key={expense.id}>
-                      <TableCell>{formatDate(expense.date)}</TableCell>
-                      <TableCell>
-                        {expense.supplier.name
-                          ? `${expense.supplier.name} (#${expense.supplier.number})`
-                          : `Dobavljač #${expense.supplier.number}`}
-                      </TableCell>
-                      <TableCell>{formatCurrency(Number(expense.amount), currency)}</TableCell>
-                      <TableCell>
-                        {expense.paymentMethod === "ACCOUNT" ? "Račun" : "Gotovina"}
-                      </TableCell>
-                      <TableCell className="max-w-[240px] truncate">
-                        {expense.note ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingExpense({
-                                id: expense.id,
-                                date: expense.date.slice(0, 10),
-                                amount: expense.amount,
-                                supplierId: expense.supplier.id,
-                                paymentMethod: expense.paymentMethod,
-                                note: expense.note ?? "",
-                              });
-                              setExpenseDialogOpen(true);
-                            }}
-                          >
-                            Izmeni
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => setDeleting({ type: "expense", id: expense.id })}
-                          >
-                            Obriši
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-              </Table>
-            </div>
+                ))
+              )}
+            </TableBody>
+            </Table>
           </div>
-        </TabsContent>
-
-        <TabsContent value="suppliers" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">Katalog dobavljača</div>
-            <Button onClick={() => setSupplierDialogOpen(true)}>Dodaj dobavljača</Button>
-          </div>
-          <div className="rounded-2xl border bg-card">
-            <div className="overflow-x-auto">
-              <Table className="min-w-[640px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>Naziv</TableHead>
-                  <TableHead className="text-right">Akcije</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {suppliers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="py-10 text-center text-sm text-muted-foreground">
-                      Još nema unetih dobavljača.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  suppliers.map((supplier) => (
-                    <TableRow key={supplier.id}>
-                      <TableCell>#{supplier.number}</TableCell>
-                      <TableCell>{supplier.name ?? "-"}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingSupplier({
-                                id: supplier.id,
-                                number: supplier.number,
-                                name: supplier.name ?? "",
-                              });
-                              setSupplierDialogOpen(true);
-                            }}
-                          >
-                            Izmeni
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => setDeleting({ type: "supplier", id: supplier.id })}
-                          >
-                            Obriši
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-              </Table>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       <Dialog
         open={expenseDialogOpen}
@@ -251,40 +196,13 @@ export function ExpensesPage() {
           <DialogHeader>
             <DialogTitle>{editingExpense ? "Izmeni trošak" : "Dodaj trošak"}</DialogTitle>
           </DialogHeader>
-          {suppliers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Prvo dodajte dobavljača kako biste mogli da unosite troškove.
-            </p>
-          ) : (
-            <ExpenseForm
-              suppliers={suppliers}
-              initialData={editingExpense ?? undefined}
-              onSuccess={() => {
-                setExpenseDialogOpen(false);
-                setEditingExpense(null);
-                loadData();
-              }}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={supplierDialogOpen}
-        onOpenChange={(value) => {
-          setSupplierDialogOpen(value);
-          if (!value) setEditingSupplier(null);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingSupplier ? "Izmeni dobavljača" : "Dodaj dobavljača"}</DialogTitle>
-          </DialogHeader>
-          <SupplierForm
-            initialData={editingSupplier ?? undefined}
+          <ExpenseForm
+            suppliers={suppliers}
+            defaultPdvPercent={defaultPdvPercent}
+            initialData={editingExpense ?? undefined}
             onSuccess={() => {
-              setSupplierDialogOpen(false);
-              setEditingSupplier(null);
+              setExpenseDialogOpen(false);
+              setEditingExpense(null);
               loadData();
             }}
           />

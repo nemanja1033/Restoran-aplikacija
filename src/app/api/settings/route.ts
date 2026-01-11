@@ -23,18 +23,16 @@ export async function PUT(request: Request) {
     const settings = await prisma.settings.upsert({
       where: { id: 1 },
       update: {
-        openingBalance: decimalFromString(parsed.openingBalance),
-        defaultDeliveryFeePercent: decimalFromString(
-          parsed.defaultDeliveryFeePercent
-        ),
+        startingBalance: decimalFromString(parsed.startingBalance),
+        defaultPdvPercent: decimalFromString(parsed.defaultPdvPercent),
+        deliveryFeePercent: decimalFromString(parsed.deliveryFeePercent),
         currency: parsed.currency,
       },
       create: {
         id: 1,
-        openingBalance: decimalFromString(parsed.openingBalance),
-        defaultDeliveryFeePercent: decimalFromString(
-          parsed.defaultDeliveryFeePercent
-        ),
+        startingBalance: decimalFromString(parsed.startingBalance),
+        defaultPdvPercent: decimalFromString(parsed.defaultPdvPercent),
+        deliveryFeePercent: decimalFromString(parsed.deliveryFeePercent),
         currency: parsed.currency,
       },
     });

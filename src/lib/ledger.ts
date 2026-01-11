@@ -3,28 +3,32 @@ import { eachDayOfInterval, format, parseISO } from "date-fns";
 
 export type LedgerRow = {
   date: string;
-  totalInStoreGross: number;
-  totalDeliveryGross: number;
-  deliveryFeeTotal: number;
-  deliveryNet: number;
-  totalRevenueNet: number;
-  expensesFromAccount: number;
-  expensesCash: number;
-  dailyNetChangeOnAccount: number;
+  incomeLocalNet: number;
+  incomeDeliveryNet: number;
+  incomeTotalNet: number;
+  expensesGross: number;
+  paymentsTotal: number;
+  pdvTotal: number;
   runningBalance: number;
 };
 
-type RevenueLike = {
+type IncomeLike = {
   date: Date;
   amount: Decimal;
-  type: "DELIVERY" | "IN_STORE";
-  feePercent: Decimal;
+  channel: "DELIVERY" | "LOCAL";
+  feeAmount: Decimal;
+  netAmount: Decimal;
 };
 
 type ExpenseLike = {
   date: Date;
+  grossAmount: Decimal;
+  pdvAmount: Decimal;
+};
+
+type PaymentLike = {
+  date: Date;
   amount: Decimal;
-  paymentMethod: "ACCOUNT" | "CASH";
 };
 
 function decimal(value: Decimal | number | string) {
@@ -36,15 +40,17 @@ function toNumber(value: Decimal) {
 }
 
 export function buildDailyLedger({
-  openingBalance,
-  revenues,
+  startingBalance,
+  incomes,
   expenses,
+  payments,
   from,
   to,
 }: {
-  openingBalance: Decimal;
-  revenues: RevenueLike[];
+  startingBalance: Decimal;
+  incomes: IncomeLike[];
   expenses: ExpenseLike[];
+  payments: PaymentLike[];
   from: string;
   to: string;
 }): LedgerRow[] {
@@ -53,10 +59,10 @@ export function buildDailyLedger({
     end: parseISO(to),
   });
 
-  const revenueByDay = new Map<string, RevenueLike[]>();
-  for (const revenue of revenues) {
-    const key = format(revenue.date, "yyyy-MM-dd");
-    revenueByDay.set(key, [...(revenueByDay.get(key) ?? []), revenue]);
+  const incomeByDay = new Map<string, IncomeLike[]>();
+  for (const income of incomes) {
+    const key = format(income.date, "yyyy-MM-dd");
+    incomeByDay.set(key, [...(incomeByDay.get(key) ?? []), income]);
   }
 
   const expenseByDay = new Map<string, ExpenseLike[]>();
@@ -65,57 +71,57 @@ export function buildDailyLedger({
     expenseByDay.set(key, [...(expenseByDay.get(key) ?? []), expense]);
   }
 
-  let running = decimal(openingBalance);
+  const paymentByDay = new Map<string, PaymentLike[]>();
+  for (const payment of payments) {
+    const key = format(payment.date, "yyyy-MM-dd");
+    paymentByDay.set(key, [...(paymentByDay.get(key) ?? []), payment]);
+  }
+
+  let running = decimal(startingBalance);
   const rows: LedgerRow[] = [];
 
   for (const day of days) {
     const key = format(day, "yyyy-MM-dd");
-    const dayRevenues = revenueByDay.get(key) ?? [];
+    const dayIncomes = incomeByDay.get(key) ?? [];
     const dayExpenses = expenseByDay.get(key) ?? [];
+    const dayPayments = paymentByDay.get(key) ?? [];
 
-    let totalInStoreGross = decimal(0);
-    let totalDeliveryGross = decimal(0);
-    let deliveryFeeTotal = decimal(0);
+    let incomeLocalNet = decimal(0);
+    let incomeDeliveryNet = decimal(0);
 
-    for (const revenue of dayRevenues) {
-      if (revenue.type === "IN_STORE") {
-        totalInStoreGross = totalInStoreGross.plus(revenue.amount);
+    for (const income of dayIncomes) {
+      if (income.channel === "LOCAL") {
+        incomeLocalNet = incomeLocalNet.plus(income.netAmount);
       } else {
-        totalDeliveryGross = totalDeliveryGross.plus(revenue.amount);
-        const fee = revenue.amount
-          .mul(revenue.feePercent)
-          .div(100);
-        deliveryFeeTotal = deliveryFeeTotal.plus(fee);
+        incomeDeliveryNet = incomeDeliveryNet.plus(income.netAmount);
       }
     }
 
-    const deliveryNet = totalDeliveryGross.minus(deliveryFeeTotal);
-    const totalRevenueNet = totalInStoreGross.plus(deliveryNet);
-
-    let expensesFromAccount = decimal(0);
-    let expensesCash = decimal(0);
+    const incomeTotalNet = incomeLocalNet.plus(incomeDeliveryNet);
+    let expensesGross = decimal(0);
+    let pdvTotal = decimal(0);
 
     for (const expense of dayExpenses) {
-      if (expense.paymentMethod === "ACCOUNT") {
-        expensesFromAccount = expensesFromAccount.plus(expense.amount);
-      } else {
-        expensesCash = expensesCash.plus(expense.amount);
-      }
+      expensesGross = expensesGross.plus(expense.grossAmount);
+      pdvTotal = pdvTotal.plus(expense.pdvAmount);
     }
 
-    const dailyNetChangeOnAccount = totalRevenueNet.minus(expensesFromAccount);
-    running = running.plus(dailyNetChangeOnAccount);
+    let paymentsTotal = decimal(0);
+    for (const payment of dayPayments) {
+      paymentsTotal = paymentsTotal.plus(payment.amount);
+    }
+
+    const dailyNetChange = incomeTotalNet.minus(paymentsTotal);
+    running = running.plus(dailyNetChange);
 
     rows.push({
       date: key,
-      totalInStoreGross: toNumber(totalInStoreGross),
-      totalDeliveryGross: toNumber(totalDeliveryGross),
-      deliveryFeeTotal: toNumber(deliveryFeeTotal),
-      deliveryNet: toNumber(deliveryNet),
-      totalRevenueNet: toNumber(totalRevenueNet),
-      expensesFromAccount: toNumber(expensesFromAccount),
-      expensesCash: toNumber(expensesCash),
-      dailyNetChangeOnAccount: toNumber(dailyNetChangeOnAccount),
+      incomeLocalNet: toNumber(incomeLocalNet),
+      incomeDeliveryNet: toNumber(incomeDeliveryNet),
+      incomeTotalNet: toNumber(incomeTotalNet),
+      expensesGross: toNumber(expensesGross),
+      paymentsTotal: toNumber(paymentsTotal),
+      pdvTotal: toNumber(pdvTotal),
       runningBalance: toNumber(running),
     });
   }
