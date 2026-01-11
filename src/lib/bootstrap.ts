@@ -100,6 +100,10 @@ export async function ensureSchema() {
       ]);
 
       const alterStatements = [
+        `CREATE UNIQUE INDEX IF NOT EXISTS Account_slug_key ON Account(slug);`,
+        `CREATE UNIQUE INDEX IF NOT EXISTS User_username_key ON User(username);`,
+        `CREATE INDEX IF NOT EXISTS User_accountId_idx ON User(accountId);`,
+        `CREATE UNIQUE INDEX IF NOT EXISTS Settings_accountId_key ON Settings(accountId);`,
         `ALTER TABLE Supplier ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
         `ALTER TABLE Supplier ADD COLUMN category TEXT NOT NULL DEFAULT 'OTHER';`,
         `ALTER TABLE Supplier ADD COLUMN pdvPercent NUMERIC;`,

@@ -24,6 +24,109 @@ function dateOnly(offsetDays: number) {
 }
 
 async function main() {
+  await prisma.$connect();
+  await prisma.$executeRawUnsafe("PRAGMA foreign_keys = ON;");
+  await prisma.$transaction([
+    prisma.$executeRawUnsafe(
+      `CREATE TABLE IF NOT EXISTS Account (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        createdAt TEXT NOT NULL DEFAULT (datetime('now'))
+      );`
+    ),
+    prisma.$executeRawUnsafe(
+      `CREATE TABLE IF NOT EXISTS User (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        accountId INTEGER NOT NULL,
+        username TEXT NOT NULL UNIQUE,
+        passwordHash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'admin',
+        createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (accountId) REFERENCES Account(id)
+      );`
+    ),
+  ]);
+
+  const schemaStatements = [
+    `ALTER TABLE Supplier ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
+    `ALTER TABLE Revenue ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
+    `ALTER TABLE Expense ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
+    `ALTER TABLE Receipt ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
+    `ALTER TABLE Settings ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS Account_slug_key ON Account(slug);`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS User_username_key ON User(username);`,
+    `CREATE INDEX IF NOT EXISTS User_accountId_idx ON User(accountId);`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS Settings_accountId_key ON Settings(accountId);`,
+  ];
+  for (const statement of schemaStatements) {
+    try {
+      await prisma.$executeRawUnsafe(statement);
+    } catch {
+      // ignore
+    }
+  }
+
+  const revenueColumns = (await prisma.$queryRawUnsafe(
+    "PRAGMA table_info(Revenue);"
+  )) as Array<{ name: string; notnull: number; dflt_value: string | null }>;
+  const legacyType = revenueColumns.find((col) => col.name === "type");
+  if (legacyType && legacyType.notnull === 1 && legacyType.dflt_value == null) {
+    await prisma.$executeRawUnsafe(`ALTER TABLE Revenue RENAME TO Revenue_old;`);
+    await prisma.$executeRawUnsafe(
+      `CREATE TABLE Revenue (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        accountId INTEGER NOT NULL DEFAULT 1,
+        date TEXT NOT NULL,
+        amount NUMERIC NOT NULL,
+        channel TEXT NOT NULL DEFAULT 'LOCAL',
+        feePercent NUMERIC NOT NULL DEFAULT 0,
+        feeAmount NUMERIC NOT NULL DEFAULT 0,
+        netAmount NUMERIC NOT NULL DEFAULT 0,
+        note TEXT,
+        createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+        updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+      );`
+    );
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO Revenue (id, accountId, date, amount, channel, feePercent, feeAmount, netAmount, note, createdAt, updatedAt)
+       SELECT id, accountId, date, amount, channel, feePercent, feeAmount, netAmount, note, createdAt, updatedAt FROM Revenue_old;`
+    );
+    await prisma.$executeRawUnsafe(`DROP TABLE Revenue_old;`);
+  }
+
+  const expenseColumns = (await prisma.$queryRawUnsafe(
+    "PRAGMA table_info(Expense);"
+  )) as Array<{ name: string; notnull: number; dflt_value: string | null }>;
+  const legacyPaymentMethod = expenseColumns.find(
+    (col) => col.name === "paymentMethod" && col.notnull === 1
+  );
+  if (legacyPaymentMethod) {
+    await prisma.$executeRawUnsafe(`ALTER TABLE Expense RENAME TO Expense_old;`);
+    await prisma.$executeRawUnsafe(
+      `CREATE TABLE Expense (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        accountId INTEGER NOT NULL DEFAULT 1,
+        date TEXT NOT NULL,
+        amount NUMERIC NOT NULL,
+        netAmount NUMERIC NOT NULL DEFAULT 0,
+        pdvPercent NUMERIC NOT NULL DEFAULT 0,
+        pdvAmount NUMERIC NOT NULL DEFAULT 0,
+        type TEXT NOT NULL DEFAULT 'SUPPLIER',
+        supplierId INTEGER,
+        note TEXT,
+        paidNow INTEGER NOT NULL DEFAULT 0,
+        receiptId INTEGER,
+        createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+        updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+      );`
+    );
+    await prisma.$executeRawUnsafe(
+      `INSERT INTO Expense (id, accountId, date, amount, netAmount, pdvPercent, pdvAmount, type, supplierId, note, paidNow, receiptId, createdAt, updatedAt)
+       SELECT id, accountId, date, amount, netAmount, pdvPercent, pdvAmount, type, supplierId, note, paidNow, receiptId, createdAt, updatedAt FROM Expense_old;`
+    );
+    await prisma.$executeRawUnsafe(`DROP TABLE Expense_old;`);
+  }
   const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD;
   if (!adminPassword) {
     throw new Error("DEFAULT_ADMIN_PASSWORD nije postavljen.");
