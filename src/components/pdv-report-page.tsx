@@ -24,10 +24,8 @@ type Settings = {
 export function PdvReportPage() {
   const [range, setRange] = useState<DateRange>({
     label: "30 dana",
-    from: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10),
-    to: new Date().toISOString().slice(0, 10),
+    from: "",
+    to: "",
   });
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -46,8 +44,19 @@ export function PdvReportPage() {
   }, [range.from, range.to]);
 
   useEffect(() => {
+    if (!range.from || !range.to) {
+      const today = new Date();
+      setRange({
+        label: "30 dana",
+        from: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .slice(0, 10),
+        to: today.toISOString().slice(0, 10),
+      });
+      return;
+    }
     loadData();
-  }, [loadData]);
+  }, [loadData, range.from, range.to]);
 
   const currency = settings?.currency ?? "RSD";
 

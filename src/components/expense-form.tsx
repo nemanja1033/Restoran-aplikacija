@@ -46,7 +46,7 @@ export function ExpenseForm({
 }) {
   const defaultValues = useMemo<ExpenseFormValues>(
     () => ({
-      date: initialData?.date ?? new Date().toISOString().slice(0, 10),
+      date: initialData?.date ?? "",
       supplierId: initialData?.supplierId ?? suppliers[0]?.id ?? undefined,
       grossAmount: initialData?.grossAmount ?? "",
       type: initialData?.type ?? (suppliers.length > 0 ? "SUPPLIER" : "OTHER"),
@@ -77,6 +77,7 @@ export function ExpenseForm({
   const supplierId = watch("supplierId");
   const expenseType = watch("type");
   const pdvPercent = watch("pdvPercent");
+  const dateValue = watch("date");
 
   useEffect(() => {
     if (!supplierId && expenseType === "SUPPLIER" && suppliers.length > 0) {
@@ -102,6 +103,12 @@ export function ExpenseForm({
       setValue("pdvPercent", defaultPdvPercent.toString());
     }
   }, [defaultPdvPercent, expenseType, pdvPercent, supplierId, suppliers, setValue]);
+
+  useEffect(() => {
+    if (!dateValue) {
+      setValue("date", new Date().toISOString().slice(0, 10));
+    }
+  }, [dateValue, setValue]);
 
   useEffect(() => {
     setReceiptPath(defaultValues.receiptPath);

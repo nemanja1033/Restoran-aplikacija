@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { StatCard } from "@/components/stat-card";
 import { BalanceChart } from "@/components/balance-chart";
@@ -33,15 +33,10 @@ export function DashboardPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [supplierDebt, setSupplierDebt] = useState(0);
 
-  const range = useMemo(() => {
-    const today = new Date();
-    return {
-      from: format(subDays(today, 29), "yyyy-MM-dd"),
-      to: format(today, "yyyy-MM-dd"),
-    };
-  }, []);
+  const [range, setRange] = useState({ from: "", to: "" });
 
   const loadData = useCallback(async () => {
+    if (!range.from || !range.to) return;
     const [ledgerData, supplierData] = await Promise.all([
       apiFetch<{ settings: Settings; ledger: LedgerRow[] }>(
         `/api/ledger?from=${range.from}&to=${range.to}`
@@ -54,10 +49,18 @@ export function DashboardPage() {
   }, [range.from, range.to]);
 
   useEffect(() => {
+    if (!range.from || !range.to) {
+      const today = new Date();
+      setRange({
+        from: format(subDays(today, 29), "yyyy-MM-dd"),
+        to: format(today, "yyyy-MM-dd"),
+      });
+      return;
+    }
     loadData();
     const id = setInterval(loadData, REFRESH_MS);
     return () => clearInterval(id);
-  }, [loadData]);
+  }, [loadData, range.from, range.to]);
 
   useEffect(() => {
     const handleUpdate = () => loadData();

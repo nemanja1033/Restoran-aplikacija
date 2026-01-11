@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { paymentSchema } from "@/lib/validations";
@@ -36,7 +36,7 @@ export function PaymentForm({
 }) {
   const defaultValues = useMemo<PaymentFormValues>(
     () => ({
-      date: initialData?.date ?? new Date().toISOString().slice(0, 10),
+      date: initialData?.date ?? "",
       amount: initialData?.amount ?? "",
       supplierId: initialData?.supplierId ?? undefined,
       note: initialData?.note ?? "",
@@ -57,6 +57,7 @@ export function PaymentForm({
   });
 
   const supplierId = watch("supplierId");
+  const dateValue = watch("date");
 
   const onSubmit = async (values: PaymentFormValues) => {
     try {
@@ -135,3 +136,8 @@ export function PaymentForm({
     </form>
   );
 }
+  useEffect(() => {
+    if (!dateValue) {
+      setValue("date", new Date().toISOString().slice(0, 10));
+    }
+  }, [dateValue, setValue]);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { format, subDays } from "date-fns";
@@ -18,9 +18,11 @@ export function DateRangeFilter({
   active: string;
   onChange: (range: DateRange) => void;
 }) {
-  const ranges = useMemo(() => {
+  const [ranges, setRanges] = useState<DateRange[]>([]);
+
+  useEffect(() => {
     const today = new Date();
-    return [
+    setRanges([
       {
         label: "7 dana",
         from: format(subDays(today, 6), "yyyy-MM-dd"),
@@ -36,8 +38,12 @@ export function DateRangeFilter({
         from: format(subDays(today, 89), "yyyy-MM-dd"),
         to: format(today, "yyyy-MM-dd"),
       },
-    ];
+    ]);
   }, []);
+
+  if (ranges.length === 0) {
+    return null;
+  }
 
   return (
     <div className="flex flex-wrap gap-2">

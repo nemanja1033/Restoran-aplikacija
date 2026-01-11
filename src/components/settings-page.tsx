@@ -33,10 +33,8 @@ export function SettingsPage() {
   const [resetOpen, setResetOpen] = useState(false);
   const [range, setRange] = useState({
     label: "30 dana",
-    from: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10),
-    to: new Date().toISOString().slice(0, 10),
+    from: "",
+    to: "",
   });
 
   const {
@@ -73,6 +71,19 @@ export function SettingsPage() {
 
     loadSettings();
   }, [reset]);
+
+  useEffect(() => {
+    if (!range.from || !range.to) {
+      const today = new Date();
+      setRange({
+        label: "30 dana",
+        from: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .slice(0, 10),
+        to: today.toISOString().slice(0, 10),
+      });
+    }
+  }, [range.from, range.to]);
 
   const onSubmit = async (values: SettingsFormValues) => {
     try {

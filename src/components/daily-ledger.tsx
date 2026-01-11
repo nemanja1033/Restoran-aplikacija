@@ -68,10 +68,8 @@ type Expense = {
 export function DailyLedger() {
   const [range, setRange] = useState<DateRange>({
     label: "30 dana",
-    from: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10),
-    to: new Date().toISOString().slice(0, 10),
+    from: "",
+    to: "",
   });
   const [ledger, setLedger] = useState<LedgerRow[]>(emptyLedger);
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -85,6 +83,7 @@ export function DailyLedger() {
   const [showDelete, setShowDelete] = useState<{ type: "revenue" | "expense"; id: number } | null>(null);
 
   const fetchLedger = useCallback(async () => {
+    if (!range.from || !range.to) return;
     setLoading(true);
     try {
       const data = await apiFetch<{ settings: Settings; ledger: LedgerRow[] }>(
@@ -122,10 +121,21 @@ export function DailyLedger() {
   }, []);
 
   useEffect(() => {
+    if (!range.from || !range.to) {
+      const today = new Date();
+      setRange({
+        label: "30 dana",
+        from: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .slice(0, 10),
+        to: today.toISOString().slice(0, 10),
+      });
+      return;
+    }
     fetchLedger();
     const id = setInterval(fetchLedger, 30000);
     return () => clearInterval(id);
-  }, [fetchLedger]);
+  }, [fetchLedger, range.from, range.to]);
 
   useEffect(() => {
     const handleUpdate = () => fetchLedger();

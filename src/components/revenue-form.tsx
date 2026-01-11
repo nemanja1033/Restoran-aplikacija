@@ -32,7 +32,7 @@ export function RevenueForm({
 }) {
   const defaultValues = useMemo<RevenueFormValues>(
     () => ({
-      date: initialData?.date ?? new Date().toISOString().slice(0, 10),
+      date: initialData?.date ?? "",
       amount: initialData?.amount ?? "",
       channel: initialData?.channel ?? "LOCAL",
       feePercent: initialData?.feePercent ?? defaultFeePercent.toString(),
@@ -54,6 +54,7 @@ export function RevenueForm({
   });
 
   const type = watch("channel");
+  const dateValue = watch("date");
 
   useEffect(() => {
     if (type === "DELIVERY" && !watch("feePercent")) {
@@ -63,6 +64,12 @@ export function RevenueForm({
       setValue("feePercent", "0");
     }
   }, [type, defaultFeePercent, setValue, watch]);
+
+  useEffect(() => {
+    if (!dateValue) {
+      setValue("date", new Date().toISOString().slice(0, 10));
+    }
+  }, [dateValue, setValue]);
 
   const onSubmit = async (values: RevenueFormValues) => {
     try {
