@@ -116,6 +116,14 @@ export function DailyLedger() {
 
   useEffect(() => {
     fetchLedger();
+    const id = setInterval(fetchLedger, 30000);
+    return () => clearInterval(id);
+  }, [fetchLedger]);
+
+  useEffect(() => {
+    const handleUpdate = () => fetchLedger();
+    window.addEventListener("finance-data-updated", handleUpdate);
+    return () => window.removeEventListener("finance-data-updated", handleUpdate);
   }, [fetchLedger]);
 
   useEffect(() => {

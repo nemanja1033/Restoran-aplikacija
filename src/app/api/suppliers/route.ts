@@ -1,18 +1,31 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { ensureSchema } from "@/lib/bootstrap";
 import { supplierSchema } from "@/lib/validations";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const suppliers = await prisma.supplier.findMany({
+  await ensureSchema();
+  let suppliers = await prisma.supplier.findMany({
     orderBy: { number: "asc" },
   });
+
+  if (suppliers.length === 0) {
+    await prisma.supplier.createMany({
+      data: [{ number: 1, name: null }, { number: 2, name: null }],
+    });
+    suppliers = await prisma.supplier.findMany({
+      orderBy: { number: "asc" },
+    });
+  }
+
   return NextResponse.json(suppliers);
 }
 
 export async function POST(request: Request) {
   try {
+    await ensureSchema();
     const body = await request.json();
     const parsed = supplierSchema.parse(body);
 

@@ -12,5 +12,12 @@ export async function apiFetch<T>(input: RequestInfo, init?: RequestInit) {
     throw new Error(data?.error ?? "Greška u komunikaciji sa serverom.");
   }
 
+  if (typeof window !== "undefined") {
+    const method = init?.method ?? "GET";
+    if (method !== "GET") {
+      window.dispatchEvent(new Event("finance-data-updated"));
+    }
+  }
+
   return (await response.json()) as T;
 }

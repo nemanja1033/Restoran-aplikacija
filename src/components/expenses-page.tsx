@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,7 @@ export function ExpensesPage() {
   const [editingSupplier, setEditingSupplier] = useState<SupplierFormValues | null>(null);
   const [deleting, setDeleting] = useState<{ type: "expense" | "supplier"; id: number } | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [expensesData, suppliersData, settingsData] = await Promise.all([
         apiFetch<Expense[]>("/api/expenses"),
@@ -64,12 +64,13 @@ export function ExpensesPage() {
     } catch {
       toast.error("Neuspešno učitavanje podataka.");
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
-  }, []);
+    const id = setInterval(loadData, 30000);
+    return () => clearInterval(id);
+  }, [loadData]);
 
   const currency = settings?.currency ?? "RSD";
 

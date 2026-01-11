@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { ensureSchema } from "@/lib/bootstrap";
 import { expenseSchema } from "@/lib/validations";
 import { decimalFromString } from "@/lib/prisma-helpers";
 import { parseDateString } from "@/lib/format";
@@ -11,6 +12,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await ensureSchema();
     const { id } = await params;
     const body = await request.json();
     const parsed = expenseSchema.parse(body);
@@ -41,6 +43,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await ensureSchema();
     const { id } = await params;
     await prisma.expense.delete({ where: { id: Number(id) } });
     return NextResponse.json({ success: true });

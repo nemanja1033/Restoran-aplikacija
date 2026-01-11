@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ export function RevenuesPage() {
   const [editing, setEditing] = useState<RevenueFormValues | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [revenuesData, settingsData] = await Promise.all([
         apiFetch<Revenue[]>("/api/revenues"),
@@ -58,12 +58,13 @@ export function RevenuesPage() {
     } catch {
       toast.error("Neuspešno učitavanje prihoda.");
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadData();
-  }, []);
+    const id = setInterval(loadData, 30000);
+    return () => clearInterval(id);
+  }, [loadData]);
 
   const currency = settings?.currency ?? "RSD";
   const defaultFee = Number(settings?.defaultDeliveryFeePercent ?? "0");

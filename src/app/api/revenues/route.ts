@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { ensureSchema } from "@/lib/bootstrap";
 import { revenueSchema } from "@/lib/validations";
 import { decimalFromString } from "@/lib/prisma-helpers";
 import { parseDateString } from "@/lib/format";
@@ -8,6 +9,7 @@ import { parseISO } from "date-fns";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  await ensureSchema();
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
@@ -32,6 +34,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await ensureSchema();
     const body = await request.json();
     const parsed = revenueSchema.parse(body);
 

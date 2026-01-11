@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/db";
+import { ensureSchema } from "@/lib/bootstrap";
 import { Decimal } from "@prisma/client/runtime/client";
 import { parseISO } from "date-fns";
 
 export async function getSettings() {
+  await ensureSchema();
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   if (!settings) {
     return prisma.settings.create({
@@ -18,10 +20,12 @@ export async function getSettings() {
 }
 
 export async function getSuppliers() {
+  await ensureSchema();
   return prisma.supplier.findMany({ orderBy: { number: "asc" } });
 }
 
 export async function getRevenues(from: string, to: string) {
+  await ensureSchema();
   return prisma.revenue.findMany({
     where: {
       date: {
@@ -34,6 +38,7 @@ export async function getRevenues(from: string, to: string) {
 }
 
 export async function getExpenses(from: string, to: string) {
+  await ensureSchema();
   return prisma.expense.findMany({
     where: {
       date: {
@@ -47,6 +52,7 @@ export async function getExpenses(from: string, to: string) {
 }
 
 export async function getExpensesAll() {
+  await ensureSchema();
   return prisma.expense.findMany({
     include: { supplier: true },
     orderBy: { date: "desc" },
@@ -54,6 +60,7 @@ export async function getExpensesAll() {
 }
 
 export async function getRevenuesAll() {
+  await ensureSchema();
   return prisma.revenue.findMany({
     orderBy: { date: "desc" },
   });

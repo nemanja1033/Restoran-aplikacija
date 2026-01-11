@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { ensureSchema } from "@/lib/bootstrap";
 import { getSettings } from "@/lib/data";
 import { settingsSchema } from "@/lib/validations";
 import { decimalFromString } from "@/lib/prisma-helpers";
@@ -13,6 +14,7 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
+    await ensureSchema();
     const body = await request.json();
     const parsed = settingsSchema.parse(body);
 

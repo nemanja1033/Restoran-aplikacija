@@ -9,6 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DateRangeFilter } from "@/components/date-range-filter";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 export type SettingsFormValues = {
@@ -19,6 +29,7 @@ export type SettingsFormValues = {
 
 export function SettingsPage() {
   const [loading, setLoading] = useState(true);
+  const [resetOpen, setResetOpen] = useState(false);
   const [range, setRange] = useState({
     label: "30 dana",
     from: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000)
@@ -89,6 +100,17 @@ export function SettingsPage() {
       window.URL.revokeObjectURL(url);
     } catch {
       toast.error("Neuspešan izvoz u Excel.");
+    }
+  };
+
+  const handleReset = async () => {
+    try {
+      await apiFetch("/api/reset", { method: "POST" });
+      toast.success("Podaci su resetovani.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Došlo je do greške.");
+    } finally {
+      setResetOpen(false);
     }
   };
 
@@ -166,6 +188,31 @@ export function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <div className="rounded-2xl border border-destructive/30 bg-card p-6">
+        <h3 className="text-lg font-semibold">Reset podataka</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Brisanjem se uklanjaju svi uneti prihodi i troškovi. Dobavljači i podešavanja ostaju.
+        </p>
+        <Button variant="destructive" className="mt-4" onClick={() => setResetOpen(true)}>
+          Resetuj podatke
+        </Button>
+      </div>
+
+      <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Potvrda resetovanja</AlertDialogTitle>
+            <AlertDialogDescription>
+              Da li ste sigurni? Ova akcija briše sve prihode i troškove i ne može se poništiti.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Odustani</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReset}>Resetuj</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

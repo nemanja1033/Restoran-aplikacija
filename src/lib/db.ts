@@ -9,15 +9,15 @@ const globalForPrisma = globalThis as unknown as {
 const databaseUrl =
   process.env.DATABASE_URL ??
   process.env.TURSO_DATABASE_URL ??
-  (process.env.NODE_ENV === "production" ? "" : "file:./dev.db");
+  (process.env.VERCEL ? "" : "file:./dev.db");
 
-if (!databaseUrl) {
+if (process.env.VERCEL && !databaseUrl) {
   throw new Error(
     "DATABASE_URL is required in production. Set it to your libsql:// connection string."
   );
 }
 
-if (process.env.NODE_ENV === "production" && databaseUrl.startsWith("file:")) {
+if (process.env.VERCEL && databaseUrl.startsWith("file:")) {
   throw new Error(
     "SQLite file URLs are not supported on Vercel. Use a libsql:// DATABASE_URL."
   );
