@@ -6,7 +6,11 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/login")) {
     return NextResponse.next();
   }
-  if (pathname.startsWith("/api/login") || pathname.startsWith("/api/logout")) {
+  if (
+    pathname.startsWith("/api/login") ||
+    pathname.startsWith("/api/logout") ||
+    pathname.startsWith("/api/auth-debug")
+  ) {
     return NextResponse.next();
   }
   const token = request.cookies.get("auth_token")?.value;
