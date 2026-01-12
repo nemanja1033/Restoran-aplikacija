@@ -1,20 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default function LoginPage() {
-  const searchParams = useSearchParams();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const error = useMemo(
-    () => (searchParams.get("error") ? "Neispravna šifra ili lozinka." : ""),
-    [searchParams]
-  );
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setError(params.get("error") ? "Neispravna šifra ili lozinka." : "");
+  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(255,209,102,0.18),_transparent_45%),linear-gradient(120deg,_rgba(160,196,255,0.15),_transparent_35%),linear-gradient(180deg,_#f8fafc,_#eef2ff)] px-4">
