@@ -9,9 +9,18 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   try {
     await ensureSchema();
-    const body = await request.json();
-    const username = String(body?.username ?? "").trim();
-    const password = String(body?.password ?? "");
+    const contentType = request.headers.get("content-type") ?? "";
+    let username = "";
+    let password = "";
+    if (contentType.includes("application/json")) {
+      const body = await request.json();
+      username = String(body?.username ?? "").trim();
+      password = String(body?.password ?? "");
+    } else {
+      const form = await request.formData();
+      username = String(form.get("username") ?? "").trim();
+      password = String(form.get("password") ?? "");
+    }
     if (!username || !password) {
       return NextResponse.json(
         { error: "Unesite šifru i lozinku." },
@@ -21,6 +30,9 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({ where: { username } });
     if (!user) {
+      if (!contentType.includes("application/json")) {
+        return NextResponse.redirect(new URL("/login?error=1", request.url));
+      }
       return NextResponse.json(
         { error: "Neispravna šifra ili lozinka." },
         { status: 401 }
@@ -29,6 +41,9 @@ export async function POST(request: Request) {
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
+      if (!contentType.includes("application/json")) {
+        return NextResponse.redirect(new URL("/login?error=1", request.url));
+      }
       return NextResponse.json(
         { error: "Neispravna šifra ili lozinka." },
         { status: 401 }
@@ -42,7 +57,9 @@ export async function POST(request: Request) {
       role: user.role,
     });
 
-    const response = NextResponse.json({ success: true });
+    const response = contentType.includes("application/json")
+      ? NextResponse.json({ success: true })
+      : NextResponse.redirect(new URL("/", request.url), 303);
     response.cookies.set({
       name: getAuthCookieName(),
       value: token,
@@ -54,6 +71,9 @@ export async function POST(request: Request) {
     });
     return response;
   } catch {
+    if (!request.headers.get("content-type")?.includes("application/json")) {
+      return NextResponse.redirect(new URL("/login?error=1", request.url));
+    }
     return NextResponse.json(
       { error: "Neuspešna prijava." },
       { status: 400 }
