@@ -25,7 +25,7 @@ export default function LoginPage() {
     });
     setSubmitting(false);
     if (result.ok) {
-      router.push("/");
+      window.location.assign("/");
       return;
     }
     const data = await result.json().catch(() => null);
