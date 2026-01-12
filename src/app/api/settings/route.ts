@@ -4,14 +4,14 @@ import { ensureSchema } from "@/lib/bootstrap";
 import { getSettings } from "@/lib/data";
 import { settingsSchema } from "@/lib/validations";
 import { decimalFromString } from "@/lib/prisma-helpers";
-import { getSessionAccountId } from "@/lib/auth";
+import { getAccountIdFromRequest } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET() {
-  const accountId = await getSessionAccountId();
+export async function GET(request: Request) {
+  const accountId = await getAccountIdFromRequest(request);
   if (!accountId) {
     return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
   }
@@ -22,7 +22,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     await ensureSchema();
-    const accountId = await getSessionAccountId();
+    const accountId = await getAccountIdFromRequest(request);
     if (!accountId) {
       return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
     }

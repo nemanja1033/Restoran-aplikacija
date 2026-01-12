@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { ensureSchema } from "@/lib/bootstrap";
 import { promises as fs } from "fs";
 import path from "path";
-import { getSessionAccountId } from "@/lib/auth";
+import { getAccountIdFromRequest } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export async function GET(
   try {
     await ensureSchema();
     const { id } = await params;
-    const accountId = await getSessionAccountId();
+    const accountId = await getAccountIdFromRequest(_request);
     if (!accountId) {
       return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
     }

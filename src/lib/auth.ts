@@ -1,4 +1,3 @@
-import { cookies } from "next/headers";
 import { jwtVerify, SignJWT } from "jose";
 
 type AuthPayload = {
@@ -8,7 +7,6 @@ type AuthPayload = {
   role: "admin" | "staff";
 };
 
-const AUTH_COOKIE = "auth_token";
 const AUTH_SECRET = process.env.AUTH_SECRET;
 const encoder = new TextEncoder();
 
@@ -35,13 +33,11 @@ export async function verifyAuthToken(token: string) {
   }
 }
 
-export function getAuthCookieName() {
-  return AUTH_COOKIE;
-}
-
-export async function getSessionAccountId() {
-  const store = await cookies();
-  const token = store.get(AUTH_COOKIE)?.value;
+export async function getAccountIdFromRequest(request: Request) {
+  const authHeader = request.headers.get("authorization") ?? "";
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length)
+    : "";
   if (!token) return null;
   const payload = await verifyAuthToken(token);
   return payload?.accountId ?? null;

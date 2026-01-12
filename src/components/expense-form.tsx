@@ -154,9 +154,12 @@ export function ExpenseForm({
     try {
       const formData = new FormData();
       formData.append("file", file);
+      const authToken =
+        typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
       const response = await fetch("/api/receipts", {
         method: "POST",
         body: formData,
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
       });
       if (!response.ok) {
         throw new Error();

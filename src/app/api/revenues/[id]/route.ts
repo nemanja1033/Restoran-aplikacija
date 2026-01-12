@@ -6,7 +6,7 @@ import { decimalFromString } from "@/lib/prisma-helpers";
 import { parseDateString } from "@/lib/format";
 import { getSettings } from "@/lib/data";
 import { calculateDeliveryFee } from "@/lib/calculations";
-import { getSessionAccountId } from "@/lib/auth";
+import { getAccountIdFromRequest } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -17,7 +17,7 @@ export async function PUT(
   try {
     await ensureSchema();
     const { id } = await params;
-    const accountId = await getSessionAccountId();
+    const accountId = await getAccountIdFromRequest(request);
     if (!accountId) {
       return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
     }
@@ -70,7 +70,7 @@ export async function DELETE(
   try {
     await ensureSchema();
     const { id } = await params;
-    const accountId = await getSessionAccountId();
+    const accountId = await getAccountIdFromRequest(_request);
     if (!accountId) {
       return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
     }

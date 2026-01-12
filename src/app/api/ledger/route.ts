@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getExpenses, getIncomes, getSettings } from "@/lib/data";
-import { getSessionAccountId } from "@/lib/auth";
+import { getAccountIdFromRequest } from "@/lib/auth";
 import { buildDailyLedger } from "@/lib/ledger";
 import { format, subDays } from "date-fns";
 
@@ -22,7 +22,7 @@ function getRange(searchParams: URLSearchParams) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const { from, to } = getRange(searchParams);
-  const accountId = await getSessionAccountId();
+  const accountId = await getAccountIdFromRequest(request);
   if (!accountId) {
     return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
   }

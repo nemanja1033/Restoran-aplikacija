@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { ensureSchema } from "@/lib/bootstrap";
 import bcrypt from "bcryptjs";
-import { getAuthCookieName, signAuthToken } from "@/lib/auth";
+import { signAuthToken } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -57,19 +57,13 @@ export async function POST(request: Request) {
       role: user.role,
     });
 
-    const response = contentType.includes("application/json")
-      ? NextResponse.json({ success: true })
-      : NextResponse.redirect(new URL("/", request.url), 303);
-    response.cookies.set({
-      name: getAuthCookieName(),
-      value: token,
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
-    return response;
+    if (contentType.includes("application/json")) {
+      return NextResponse.json({ success: true, token });
+    }
+    return NextResponse.redirect(
+      new URL(`/login?token=${encodeURIComponent(token)}`, request.url),
+      303
+    );
   } catch {
     if (!request.headers.get("content-type")?.includes("application/json")) {
       return NextResponse.redirect(new URL("/login?error=1", request.url));

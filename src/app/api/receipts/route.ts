@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { ensureSchema } from "@/lib/bootstrap";
 import { getStorageProvider } from "@/lib/storage";
-import { getSessionAccountId } from "@/lib/auth";
+import { getAccountIdFromRequest } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export const revalidate = 0;
 export async function POST(request: Request) {
   try {
     await ensureSchema();
-    const accountId = await getSessionAccountId();
+    const accountId = await getAccountIdFromRequest(request);
     if (!accountId) {
       return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
     }

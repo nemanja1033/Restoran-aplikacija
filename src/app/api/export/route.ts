@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { getExpenses, getIncomes, getSuppliers } from "@/lib/data";
-import { getSessionAccountId } from "@/lib/auth";
+import { getAccountIdFromRequest } from "@/lib/auth";
 import { format, parseISO, subDays } from "date-fns";
 
 export const runtime = "nodejs";
@@ -22,7 +22,7 @@ function getRange(searchParams: URLSearchParams) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const { from, to } = getRange(searchParams);
-  const accountId = await getSessionAccountId();
+  const accountId = await getAccountIdFromRequest(request);
   if (!accountId) {
     return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
   }

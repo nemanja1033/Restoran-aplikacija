@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { ensureSchema } from "@/lib/bootstrap";
 import { supplierSchema } from "@/lib/validations";
 import { decimalFromString } from "@/lib/prisma-helpers";
-import { getSessionAccountId } from "@/lib/auth";
+import { getAccountIdFromRequest } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   await ensureSchema();
   const { searchParams } = new URL(request.url);
   const summary = searchParams.get("summary") === "1";
-  const accountId = await getSessionAccountId();
+  const accountId = await getAccountIdFromRequest(request);
   if (!accountId) {
     return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
   }
@@ -84,7 +84,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     await ensureSchema();
-    const accountId = await getSessionAccountId();
+    const accountId = await getAccountIdFromRequest(request);
     if (!accountId) {
       return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
     }

@@ -1,27 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { verifyAuthToken } from "@/lib/auth";
+import { NextResponse } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  if (pathname.startsWith("/login")) {
-    return NextResponse.next();
-  }
-  if (
-    pathname.startsWith("/api/login") ||
-    pathname.startsWith("/api/logout") ||
-    pathname.startsWith("/api/auth-debug")
-  ) {
-    return NextResponse.next();
-  }
-  const token = request.cookies.get("auth_token")?.value;
-  const payload = token ? await verifyAuthToken(token) : null;
-  if (!payload) {
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
-  }
+export function middleware() {
   return NextResponse.next();
 }
-
-export const config = {
-  matcher: ["/((?!_next|favicon.ico).*)"],
-};

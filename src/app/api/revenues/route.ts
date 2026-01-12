@@ -7,7 +7,7 @@ import { parseDateString } from "@/lib/format";
 import { parseISO } from "date-fns";
 import { getSettings } from "@/lib/data";
 import { calculateDeliveryFee } from "@/lib/calculations";
-import { getSessionAccountId } from "@/lib/auth";
+import { getAccountIdFromRequest } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const from = searchParams.get("from");
   const to = searchParams.get("to");
   const summary = searchParams.get("summary") === "1";
-  const accountId = await getSessionAccountId();
+  const accountId = await getAccountIdFromRequest(request);
   if (!accountId) {
     return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
   }
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     await ensureSchema();
-    const accountId = await getSessionAccountId();
+    const accountId = await getAccountIdFromRequest(request);
     if (!accountId) {
       return NextResponse.json({ error: "Neautorizovan pristup." }, { status: 401 });
     }

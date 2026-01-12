@@ -1,5 +1,6 @@
 import { MobileNav } from "@/components/mobile-nav";
 import { Sidebar } from "@/components/sidebar";
+import { AuthGuard } from "@/components/auth-guard";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,10 +17,12 @@ export default function DashboardLayout({
           <Sidebar />
         </div>
         <main className="rounded-3xl border bg-background/80 p-4 shadow-sm backdrop-blur sm:p-6">
-          <div className="mb-6">
-            <MobileNav />
-          </div>
-          {children}
+          <AuthGuard>
+            <div className="mb-6">
+              <MobileNav />
+            </div>
+            {children}
+          </AuthGuard>
         </main>
       </div>
     </div>

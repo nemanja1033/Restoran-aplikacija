@@ -54,7 +54,7 @@ function SidebarContent() {
         variant="outline"
         size="sm"
         onClick={async () => {
-          await fetch("/api/logout", { method: "POST", credentials: "include" });
+          localStorage.removeItem("auth_token");
           router.push("/login");
         }}
       >
