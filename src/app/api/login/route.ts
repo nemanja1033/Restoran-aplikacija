@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const token = signAuthToken({
+    const token = await signAuthToken({
       userId: user.id,
       username: user.username,
       accountId: user.accountId,

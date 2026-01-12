@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuthToken } from "@/lib/auth";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (pathname.startsWith("/login")) {
     return NextResponse.next();
@@ -10,7 +10,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   const token = request.cookies.get("auth_token")?.value;
-  const payload = token ? verifyAuthToken(token) : null;
+  const payload = token ? await verifyAuthToken(token) : null;
   if (!payload) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
