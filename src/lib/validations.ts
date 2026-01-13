@@ -6,6 +6,12 @@ const decimalString = z
   .regex(/^\d+([.,]\d{1,2})?$/, "Unesite ispravan iznos")
   .transform((value) => value.replace(",", "."));
 
+const signedDecimalString = z
+  .string()
+  .trim()
+  .regex(/^-?\d+([.,]\d{1,2})?$/, "Unesite ispravan iznos")
+  .transform((value) => value.replace(",", "."));
+
 export const dateStringSchema = z
   .string()
   .min(1, "Datum je obavezan")
@@ -66,7 +72,7 @@ export const incomeSchema = z
   });
 
 export const settingsSchema = z.object({
-  startingBalance: decimalString,
+  startingBalance: signedDecimalString,
   defaultPdvPercent: decimalString,
   deliveryFeePercent: decimalString,
   currency: z.string().trim(),
