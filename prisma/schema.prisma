@@ -25,6 +25,12 @@ enum SupplierCategory {
   OTHER
 }
 
+enum SupplierTransactionType {
+  RACUN
+  UPLATA
+  KOREKCIJA
+}
+
 enum UserRole {
   admin
   staff
@@ -39,6 +45,7 @@ model Account {
   suppliers Supplier[]
   incomes   Income[]
   expenses  Expense[]
+  supplierTransactions SupplierTransaction[]
   receipts  Receipt[]
   settings  Settings[]
 }
@@ -65,6 +72,7 @@ model Supplier {
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
   expenses   Expense[]
+  transactions SupplierTransaction[]
   account    Account          @relation(fields: [accountId], references: [id])
 
   @@index([accountId])
@@ -136,4 +144,22 @@ model Settings {
   account           Account  @relation(fields: [accountId], references: [id])
 
   @@unique([accountId])
+}
+
+model SupplierTransaction {
+  id            Int                     @id @default(autoincrement())
+  accountId     Int
+  supplierId    Int
+  type          SupplierTransactionType
+  amount        Decimal
+  vatRate       Decimal?
+  description   String
+  invoiceNumber String?
+  date          DateTime
+  createdAt     DateTime                @default(now())
+  supplier      Supplier                @relation(fields: [supplierId], references: [id])
+  account       Account                 @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+  @@index([supplierId])
 }

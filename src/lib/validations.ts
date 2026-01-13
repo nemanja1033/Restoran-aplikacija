@@ -6,6 +6,16 @@ const decimalString = z
   .regex(/^\d+([.,]\d{1,2})?$/, "Unesite ispravan iznos")
   .transform((value) => value.replace(",", "."));
 
+const positiveDecimalString = decimalString.refine(
+  (value) => Number(value) > 0,
+  "Iznos mora biti veći od 0"
+);
+
+const nonNegativeDecimalString = decimalString.refine(
+  (value) => Number(value) >= 0,
+  "PDV mora biti veći ili jednak 0"
+);
+
 const signedDecimalString = z
   .string()
   .trim()
@@ -78,6 +88,16 @@ export const settingsSchema = z.object({
   currency: z.string().trim(),
 });
 
+export const supplierTransactionSchema = z.object({
+  supplierId: z.number().int(),
+  type: z.enum(["RACUN", "UPLATA", "KOREKCIJA"]),
+  amount: positiveDecimalString,
+  vatRate: nonNegativeDecimalString.optional(),
+  description: z.string().trim().min(1, "Opis je obavezan"),
+  invoiceNumber: z.string().trim().optional(),
+  date: dateStringSchema,
+});
+
 export const dateRangeSchema = z.object({
   from: dateStringSchema,
   to: dateStringSchema,
@@ -88,3 +108,4 @@ export type ExpenseInput = z.infer<typeof expenseSchema>;
 export type IncomeInput = z.infer<typeof incomeSchema>;
 export type SettingsInput = z.infer<typeof settingsSchema>;
 export type DateRangeInput = z.infer<typeof dateRangeSchema>;
+export type SupplierTransactionInput = z.infer<typeof supplierTransactionSchema>;

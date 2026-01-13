@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import Link from "next/link";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -122,7 +123,14 @@ export function SuppliersPage() {
                 suppliers.map((supplier) => (
                   <TableRow key={supplier.id}>
                     <TableCell>#{supplier.number}</TableCell>
-                    <TableCell>{supplier.name ?? "-"}</TableCell>
+                    <TableCell>
+                      <Link
+                        href={`/dobavljaci/${supplier.id}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {supplier.name ?? `Dobavljač #${supplier.number}`}
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       {supplier.category === "MEAT"
                         ? "Meso"
@@ -153,6 +161,9 @@ export function SuppliersPage() {
                           }}
                         >
                           Izmeni
+                        </Button>
+                        <Button size="sm" variant="secondary" asChild>
+                          <Link href={`/dobavljaci/${supplier.id}`}>Detalji</Link>
                         </Button>
                         <Button
                           size="sm"

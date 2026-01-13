@@ -97,6 +97,22 @@ export async function ensureSchema() {
             updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
           );`
         ),
+        prisma.$executeRawUnsafe(
+          `CREATE TABLE IF NOT EXISTS SupplierTransaction (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            accountId INTEGER NOT NULL DEFAULT 1,
+            supplierId INTEGER NOT NULL,
+            type TEXT NOT NULL,
+            amount NUMERIC NOT NULL,
+            vatRate NUMERIC,
+            description TEXT NOT NULL,
+            invoiceNumber TEXT,
+            date TEXT NOT NULL,
+            createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (supplierId) REFERENCES Supplier(id),
+            FOREIGN KEY (accountId) REFERENCES Account(id)
+          );`
+        ),
       ]);
 
       const alterStatements = [
@@ -122,6 +138,15 @@ export async function ensureSchema() {
         `ALTER TABLE Receipt ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
         `ALTER TABLE Settings ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
         `ALTER TABLE Settings ADD COLUMN defaultPdvPercent NUMERIC NOT NULL DEFAULT 0;`,
+        `ALTER TABLE SupplierTransaction ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
+        `ALTER TABLE SupplierTransaction ADD COLUMN supplierId INTEGER NOT NULL DEFAULT 1;`,
+        `ALTER TABLE SupplierTransaction ADD COLUMN type TEXT NOT NULL DEFAULT 'RACUN';`,
+        `ALTER TABLE SupplierTransaction ADD COLUMN amount NUMERIC NOT NULL DEFAULT 0;`,
+        `ALTER TABLE SupplierTransaction ADD COLUMN vatRate NUMERIC;`,
+        `ALTER TABLE SupplierTransaction ADD COLUMN description TEXT NOT NULL DEFAULT '';`,
+        `ALTER TABLE SupplierTransaction ADD COLUMN invoiceNumber TEXT;`,
+        `ALTER TABLE SupplierTransaction ADD COLUMN date TEXT NOT NULL DEFAULT (datetime('now'));`,
+        `ALTER TABLE SupplierTransaction ADD COLUMN createdAt TEXT NOT NULL DEFAULT (datetime('now'));`,
       ];
 
       for (const statement of alterStatements) {
