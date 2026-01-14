@@ -32,12 +32,14 @@ export async function getSuppliers(accountId: number) {
 
 export async function getIncomes(accountId: number, from: string, to: string) {
   await ensureSchema();
+  const fromDate = parseISO(`${from}T00:00:00`);
+  const toDate = parseISO(`${to}T23:59:59`);
   return prisma.income.findMany({
     where: {
       accountId,
       date: {
-        gte: parseISO(from),
-        lte: parseISO(to),
+        gte: fromDate,
+        lte: toDate,
       },
     },
     orderBy: { date: "asc" },
@@ -46,12 +48,14 @@ export async function getIncomes(accountId: number, from: string, to: string) {
 
 export async function getExpenses(accountId: number, from: string, to: string) {
   await ensureSchema();
+  const fromDate = parseISO(`${from}T00:00:00`);
+  const toDate = parseISO(`${to}T23:59:59`);
   return prisma.expense.findMany({
     where: {
       accountId,
       date: {
-        gte: parseISO(from),
-        lte: parseISO(to),
+        gte: fromDate,
+        lte: toDate,
       },
     },
     include: { supplier: true, receipt: true },

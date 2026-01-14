@@ -38,8 +38,8 @@ export async function GET(request: Request) {
       ? {
           accountId,
           date: {
-            gte: parseISO(from),
-            lte: parseISO(to),
+            gte: parseISO(`${from}T00:00:00`),
+            lte: parseISO(`${to}T23:59:59`),
           },
         }
       : { accountId };

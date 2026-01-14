@@ -130,8 +130,12 @@ export function SupplierDetailsPage({ supplierId }: { supplierId: number }) {
       if (range.from) params.set("from", range.from);
       if (range.to) params.set("to", range.to);
       if (typeFilter !== "ALL") params.set("type", typeFilter);
+      const authToken = localStorage.getItem("auth_token");
       const response = await fetch(
-        `/api/suppliers/${supplierId}/ledger/export?${params.toString()}`
+        `/api/suppliers/${supplierId}/ledger/export?${params.toString()}`,
+        {
+          headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+        }
       );
       if (!response.ok) throw new Error();
       const blob = await response.blob();

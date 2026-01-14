@@ -176,6 +176,26 @@ export function ExpenseForm({
     }
   };
 
+  const handleReceiptView = async () => {
+    if (!receiptPath) return;
+    try {
+      const authToken =
+        typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+      const response = await fetch(receiptPath, {
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      });
+      if (!response.ok) {
+        throw new Error();
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+    } catch {
+      toast.error("Neuspešno otvaranje računa.");
+    }
+  };
+
   return (
     <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
       <div className="grid gap-4 md:grid-cols-2">
@@ -286,14 +306,13 @@ export function ExpenseForm({
           }}
         />
         {receiptPath ? (
-          <a
-            href={receiptPath}
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
+            onClick={handleReceiptView}
             className="text-xs text-primary underline"
           >
             Pogledaj račun
-          </a>
+          </button>
         ) : (
           <p className="text-xs text-muted-foreground">Nije dodat račun.</p>
         )}

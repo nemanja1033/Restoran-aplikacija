@@ -99,7 +99,10 @@ export function SettingsPage() {
 
   const handleExport = async () => {
     try {
-      const response = await fetch(`/api/export?from=${range.from}&to=${range.to}`);
+      const authToken = localStorage.getItem("auth_token");
+      const response = await fetch(`/api/export?from=${range.from}&to=${range.to}`, {
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+      });
       if (!response.ok) {
         throw new Error();
       }
