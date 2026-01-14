@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { toast } from "sonner";
 import { expenseSchema } from "@/lib/validations";
 import { apiFetch } from "@/lib/api-client";
@@ -12,16 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-export type ExpenseFormValues = {
-  id?: number;
-  date: string;
-  grossAmount: string;
-  type: "SUPPLIER" | "SUPPLIER_PAYMENT" | "SALARY" | "OTHER";
-  supplierId?: number;
-  pdvPercent?: string;
-  paidNow?: boolean;
-  note?: string;
-  receiptId?: number;
+export type ExpenseFormSchemaValues = z.infer<typeof expenseSchema>;
+
+export type ExpenseFormValues = ExpenseFormSchemaValues & {
   receiptPath?: string;
 };
 
@@ -44,7 +38,7 @@ export function ExpenseForm({
   initialData?: ExpenseFormValues;
   onSuccess?: () => void;
 }) {
-  const defaultValues = useMemo<ExpenseFormValues>(
+  const defaultValues = useMemo<ExpenseFormSchemaValues>(
     () => ({
       date: initialData?.date ?? "",
       supplierId: initialData?.supplierId ?? suppliers[0]?.id ?? undefined,
@@ -54,7 +48,6 @@ export function ExpenseForm({
       paidNow: initialData?.paidNow ?? true,
       note: initialData?.note ?? "",
       receiptId: initialData?.receiptId,
-      receiptPath: initialData?.receiptPath,
       id: initialData?.id,
     }),
     [defaultPdvPercent, initialData, suppliers]
@@ -66,13 +59,13 @@ export function ExpenseForm({
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<ExpenseFormValues>({
+  } = useForm<ExpenseFormSchemaValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues,
   });
 
   const [uploading, setUploading] = useState(false);
-  const [receiptPath, setReceiptPath] = useState(defaultValues.receiptPath);
+  const [receiptPath, setReceiptPath] = useState(initialData?.receiptPath);
 
   const supplierId = watch("supplierId");
   const expenseType = watch("type");
@@ -120,10 +113,10 @@ export function ExpenseForm({
   }, [dateValue, setValue]);
 
   useEffect(() => {
-    setReceiptPath(defaultValues.receiptPath);
-  }, [defaultValues.receiptPath]);
+    setReceiptPath(initialData?.receiptPath);
+  }, [initialData?.receiptPath]);
 
-  const onSubmit = async (values: ExpenseFormValues) => {
+  const onSubmit = async (values: ExpenseFormSchemaValues) => {
     try {
       const supplierId =
         typeof values.supplierId === "number" && Number.isFinite(values.supplierId)
