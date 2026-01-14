@@ -10,7 +10,7 @@ export function StatCard({
   hint?: string;
 }) {
   return (
-    <Card className="border-0 bg-muted/40 shadow-sm">
+    <Card className="bg-[linear-gradient(135deg,rgba(255,255,255,0.9),rgba(248,250,252,0.75))]">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}

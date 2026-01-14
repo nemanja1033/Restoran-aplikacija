@@ -11,12 +11,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,209,102,0.18),_transparent_45%),linear-gradient(120deg,_rgba(160,196,255,0.15),_transparent_35%),linear-gradient(180deg,_#f8fafc,_#eef2ff)] dark:bg-[radial-gradient(circle_at_top,_rgba(14,116,144,0.25),_transparent_45%),linear-gradient(160deg,_rgba(15,23,42,0.85),_rgba(2,6,23,0.95))]">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,240,200,0.6),_transparent_55%),radial-gradient(circle_at_15%_20%,_rgba(169,210,255,0.35),_transparent_55%),linear-gradient(180deg,_#f7f6f2,_#eef2f7)] dark:bg-[radial-gradient(circle_at_top,_rgba(14,116,144,0.25),_transparent_45%),linear-gradient(160deg,_rgba(15,23,42,0.85),_rgba(2,6,23,0.95))]">
       <div className="mx-auto grid min-h-screen max-w-[1400px] grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[280px_1fr]">
         <div className="hidden lg:block">
           <Sidebar />
         </div>
-        <main className="rounded-3xl border bg-background/80 p-4 shadow-sm backdrop-blur sm:p-6">
+        <main className="rounded-3xl border border-white/60 bg-background/80 p-4 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.35)] sm:p-6">
           <AuthGuard>
             <div className="mb-6">
               <MobileNav />
