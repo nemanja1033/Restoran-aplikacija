@@ -22,13 +22,7 @@ const signedDecimalString = z
   .regex(/^-?\d+([.,]\d{1,2})?$/, "Unesite ispravan iznos")
   .transform((value) => value.replace(",", "."));
 
-const optionalInt = z
-  .preprocess((value) => {
-    if (value === "" || value == null) return undefined;
-    if (typeof value === "number" && Number.isNaN(value)) return undefined;
-    return value;
-  }, z.number().int())
-  .optional();
+const optionalInt = z.number().int().optional();
 
 export const dateStringSchema = z
   .string()

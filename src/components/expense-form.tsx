@@ -74,6 +74,14 @@ export function ExpenseForm({
   const dateValue = watch("date");
 
   useEffect(() => {
+    register("supplierId");
+    register("receiptId");
+    register("type");
+    register("pdvPercent");
+    register("paidNow");
+  }, [register]);
+
+  useEffect(() => {
     if (!supplierId && (expenseType === "SUPPLIER" || expenseType === "SUPPLIER_PAYMENT") && suppliers.length > 0) {
       setValue("supplierId", suppliers[0].id);
     }
@@ -170,11 +178,6 @@ export function ExpenseForm({
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-      <input type="hidden" {...register("supplierId", { valueAsNumber: true })} />
-      <input type="hidden" {...register("type")} />
-      <input type="hidden" {...register("pdvPercent")} />
-      <input type="hidden" {...register("paidNow")} />
-      <input type="hidden" {...register("receiptId", { valueAsNumber: true })} />
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="date">Datum</Label>
