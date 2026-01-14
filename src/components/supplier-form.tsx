@@ -17,6 +17,7 @@ export type SupplierFormValues = {
   name?: string;
   category: "MEAT" | "VEGETABLES" | "PACKAGING" | "OTHER";
   pdvPercent?: string;
+  openingBalance?: string;
 };
 
 export function SupplierForm({
@@ -33,6 +34,7 @@ export function SupplierForm({
       name: initialData?.name ?? "",
       category: initialData?.category ?? "OTHER",
       pdvPercent: initialData?.pdvPercent ?? "",
+      openingBalance: initialData?.openingBalance ?? "0",
     }),
     [initialData]
   );
@@ -110,6 +112,13 @@ export function SupplierForm({
         <Input id="pdvPercent" type="text" {...register("pdvPercent")} />
         {errors.pdvPercent ? (
           <p className="text-xs text-destructive">{errors.pdvPercent.message}</p>
+        ) : null}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="openingBalance">Početno dugovanje</Label>
+        <Input id="openingBalance" type="text" {...register("openingBalance")} />
+        {errors.openingBalance ? (
+          <p className="text-xs text-destructive">{errors.openingBalance.message}</p>
         ) : null}
       </div>
       <Button type="submit" disabled={isSubmitting} className="w-full">

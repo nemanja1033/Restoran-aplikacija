@@ -4,6 +4,7 @@ import { ensureSchema } from "@/lib/bootstrap";
 import { supplierSchema } from "@/lib/validations";
 import { decimalFromString } from "@/lib/prisma-helpers";
 import { getAccountIdFromRequest } from "@/lib/auth";
+import { Decimal } from "@prisma/client/runtime/client";
 
 export const runtime = "nodejs";
 
@@ -34,6 +35,9 @@ export async function PUT(
         name: parsed.name || null,
         category: parsed.category,
         pdvPercent: parsed.pdvPercent ? decimalFromString(parsed.pdvPercent) : null,
+        openingBalance: parsed.openingBalance
+          ? decimalFromString(parsed.openingBalance)
+          : new Decimal("0"),
       },
     });
 

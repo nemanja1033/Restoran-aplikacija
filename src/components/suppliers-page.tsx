@@ -26,6 +26,7 @@ type SupplierSummary = {
   name: string | null;
   category: "MEAT" | "VEGETABLES" | "PACKAGING" | "OTHER";
   pdvPercent: string | null;
+  openingBalance: string;
   purchasedGross: number;
   paidTotal: number;
   outstanding: number;
@@ -156,6 +157,7 @@ export function SuppliersPage() {
                               name: supplier.name ?? "",
                               category: supplier.category,
                               pdvPercent: supplier.pdvPercent ?? "",
+                              openingBalance: supplier.openingBalance ?? "0",
                             });
                             setOpen(true);
                           }}

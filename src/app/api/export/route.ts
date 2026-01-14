@@ -75,6 +75,7 @@ export async function GET(request: Request) {
   const transactionsSheet = XLSX.utils.json_to_sheet(transactions);
 
   const supplierTotals = suppliers.map((supplier) => {
+    const openingBalance = Number(supplier.openingBalance.toString());
     const purchased = expenses
       .filter((expense) => expense.supplierId === supplier.id && expense.type === "SUPPLIER")
       .reduce((sum, expense) => sum + Number(expense.grossAmount.toString()), 0);
@@ -100,9 +101,9 @@ export async function GET(request: Request) {
           ? "Ambalaža"
           : "Ostalo",
       "PDV %": supplier.pdvPercent ? Number(supplier.pdvPercent.toString()) : "",
-      "Kupljeno (bruto)": purchased,
+      "Kupljeno (bruto)": purchased + openingBalance,
       "Plaćeno": paid,
-      "Dugovanje": purchased - paid,
+      "Dugovanje": purchased + openingBalance - paid,
     };
   });
 

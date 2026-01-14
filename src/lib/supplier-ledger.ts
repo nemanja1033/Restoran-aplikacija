@@ -41,11 +41,16 @@ function decimal(value: Decimal | number | string) {
 export function buildSupplierLedger({
   transactions,
   legacyPdvPercent,
+  openingBalance = 0,
+  openingBalanceDate,
 }: {
   transactions: SupplierTransactionLike[];
   legacyPdvPercent: Decimal;
+  openingBalance?: Decimal | number | string;
+  openingBalanceDate?: Date;
 }) {
   const rows: SupplierLedgerRow[] = [];
+  const openingBalanceValue = decimal(openingBalance);
   let running = decimal(0);
   let totalInvoiced = decimal(0);
   let totalPaid = decimal(0);
@@ -53,7 +58,30 @@ export function buildSupplierLedger({
   let totalPdv = decimal(0);
   let totalGross = decimal(0);
 
-  const sorted = [...transactions].sort((a, b) => {
+  const entries: SupplierTransactionLike[] = [...transactions];
+  if (!openingBalanceValue.isZero()) {
+    const earliestDate = entries.reduce<Date | null>(
+      (earliest, entry) => (!earliest || entry.date < earliest ? entry.date : earliest),
+      null
+    );
+    const baseDate = openingBalanceDate ?? earliestDate ?? new Date();
+    const openingDate =
+      earliestDate && baseDate.getTime() >= earliestDate.getTime()
+        ? new Date(earliestDate.getTime() - 1000)
+        : baseDate;
+    entries.unshift({
+      id: -1,
+      date: openingDate,
+      type: "KOREKCIJA",
+      amount: openingBalanceValue,
+      vatRate: decimal(0),
+      description: "Početno dugovanje",
+      invoiceNumber: null,
+      createdAt: openingDate,
+    });
+  }
+
+  const sorted = entries.sort((a, b) => {
     if (a.date.getTime() !== b.date.getTime()) {
       return a.date.getTime() - b.date.getTime();
     }

@@ -4,6 +4,7 @@ import { ensureSchema } from "@/lib/bootstrap";
 import { supplierSchema } from "@/lib/validations";
 import { decimalFromString } from "@/lib/prisma-helpers";
 import { getAccountIdFromRequest } from "@/lib/auth";
+import { Decimal } from "@prisma/client/runtime/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,11 +63,12 @@ export async function GET(request: Request) {
 
   const supplierSummaries = suppliers.map((supplier) => {
     const summaryEntry = totals.get(supplier.id) ?? { purchased: 0, paid: 0 };
+    const openingBalance = Number(supplier.openingBalance.toString());
     return {
       ...supplier,
-      purchasedGross: summaryEntry.purchased,
+      purchasedGross: summaryEntry.purchased + openingBalance,
       paidTotal: summaryEntry.paid,
-      outstanding: summaryEntry.purchased - summaryEntry.paid,
+      outstanding: summaryEntry.purchased + openingBalance - summaryEntry.paid,
     };
   });
 
@@ -98,6 +100,9 @@ export async function POST(request: Request) {
         name: parsed.name || null,
         category: parsed.category,
         pdvPercent: parsed.pdvPercent ? decimalFromString(parsed.pdvPercent) : null,
+        openingBalance: parsed.openingBalance
+          ? decimalFromString(parsed.openingBalance)
+          : new Decimal("0"),
       },
     });
 

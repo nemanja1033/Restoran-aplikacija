@@ -38,6 +38,8 @@ export async function GET(
   const { rows } = buildSupplierLedger({
     transactions,
     legacyPdvPercent,
+    openingBalance: supplier.openingBalance,
+    openingBalanceDate: supplier.createdAt,
   });
 
   const { searchParams } = new URL(request.url);

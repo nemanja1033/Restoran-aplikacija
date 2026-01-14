@@ -35,6 +35,7 @@ export async function ensureSchema() {
             name TEXT,
             category TEXT NOT NULL DEFAULT 'OTHER',
             pdvPercent NUMERIC,
+            openingBalance NUMERIC NOT NULL DEFAULT 0,
             createdAt TEXT NOT NULL DEFAULT (datetime('now')),
             updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
           );`
@@ -123,6 +124,7 @@ export async function ensureSchema() {
         `ALTER TABLE Supplier ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
         `ALTER TABLE Supplier ADD COLUMN category TEXT NOT NULL DEFAULT 'OTHER';`,
         `ALTER TABLE Supplier ADD COLUMN pdvPercent NUMERIC;`,
+        `ALTER TABLE Supplier ADD COLUMN openingBalance NUMERIC NOT NULL DEFAULT 0;`,
         `ALTER TABLE Revenue ADD COLUMN accountId INTEGER NOT NULL DEFAULT 1;`,
         `ALTER TABLE Revenue ADD COLUMN channel TEXT NOT NULL DEFAULT 'LOCAL';`,
         `ALTER TABLE Revenue ADD COLUMN feePercent NUMERIC NOT NULL DEFAULT 0;`,

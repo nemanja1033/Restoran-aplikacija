@@ -38,6 +38,7 @@ export const supplierSchema = z.object({
   name: z.string().trim().optional(),
   category: z.enum(["MEAT", "VEGETABLES", "PACKAGING", "OTHER"]),
   pdvPercent: decimalString.optional(),
+  openingBalance: nonNegativeDecimalString.optional(),
 });
 
 export const expenseSchema = z
