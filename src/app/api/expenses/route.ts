@@ -96,6 +96,10 @@ export async function POST(request: Request) {
           : new Decimal(0));
 
     const grossAmount = decimalFromString(parsed.grossAmount);
+    const contributionsAmount =
+      parsed.type === "SALARY" && parsed.contributionsAmount
+        ? decimalFromString(parsed.contributionsAmount)
+        : new Decimal(0);
     const { netAmount, pdvAmount } = calculatePdvBreakdown(
       grossAmount,
       pdvPercent
@@ -107,6 +111,7 @@ export async function POST(request: Request) {
         date: parseDateString(parsed.date),
         supplierId: parsed.supplierId ?? null,
         grossAmount,
+        contributionsAmount,
         netAmount,
         pdvPercent,
         pdvAmount,

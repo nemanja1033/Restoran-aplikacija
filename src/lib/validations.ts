@@ -46,6 +46,7 @@ export const expenseSchema = z
     id: z.number().int().optional(),
     date: dateStringSchema,
     grossAmount: decimalString,
+    contributionsAmount: nonNegativeDecimalString.optional(),
     type: z.enum(["SUPPLIER", "SUPPLIER_PAYMENT", "SALARY", "OTHER"]),
     supplierId: optionalInt,
     pdvPercent: decimalString.optional(),

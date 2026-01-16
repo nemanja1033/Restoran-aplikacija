@@ -51,11 +51,17 @@ export async function GET(request: Request) {
         "Račun link": "-",
       };
     }),
-    ...expenses.map((expense: ExpenseItem) => ({
+    ...expenses.map((expense: ExpenseItem) => {
+      const contributions = Number(expense.contributionsAmount?.toString?.() ?? "0");
+      const totalCash =
+        expense.type === "SALARY" ? Number(expense.grossAmount.toString()) + contributions : Number(expense.grossAmount.toString());
+      return {
       Datum: format(expense.date, "yyyy-MM-dd"),
       Tip: expense.type === "SUPPLIER_PAYMENT" ? "Uplata dobavljaču" : "Trošak",
       Opis: expense.note ?? "",
       Bruto: Number(expense.grossAmount.toString()),
+      Doprinosi: contributions || "",
+      "Ukupno isplata": expense.type === "SALARY" ? totalCash : "",
       Neto: Number(expense.netAmount.toString()),
       "PDV %": Number(expense.pdvPercent.toString()),
       "PDV iznos": Number(expense.pdvAmount.toString()),
@@ -67,7 +73,8 @@ export async function GET(request: Request) {
         : "-",
       "Plaćeno odmah": expense.type === "SUPPLIER" ? (expense.paidNow ? "Da" : "Ne") : "Da",
       "Račun link": expense.receiptId ? `/api/receipts/${expense.receiptId}` : "-",
-    })),
+      };
+    }),
   ].sort((a, b) =>
     parseISO(a.Datum).getTime() - parseISO(b.Datum).getTime()
   );

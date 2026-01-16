@@ -102,6 +102,7 @@ model Expense {
   accountId   Int
   date        DateTime
   grossAmount Decimal     @map("amount")
+  contributionsAmount Decimal @default(0)
   netAmount   Decimal     @default(0)
   pdvPercent  Decimal     @default(0)
   pdvAmount   Decimal     @default(0)

@@ -30,6 +30,7 @@ type Expense = {
   id: number;
   date: string;
   grossAmount: string;
+  contributionsAmount: string;
   netAmount: string;
   pdvPercent: string;
   pdvAmount: string;
@@ -156,6 +157,7 @@ export function ExpensesPage() {
                               id: expense.id,
                               date: expense.date.slice(0, 10),
                               grossAmount: expense.grossAmount,
+                              contributionsAmount: expense.contributionsAmount ?? "0",
                               supplierId: expense.supplier?.id,
                               type: expense.type,
                               pdvPercent: expense.pdvPercent,

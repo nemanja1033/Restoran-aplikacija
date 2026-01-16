@@ -43,6 +43,7 @@ export function ExpenseForm({
       date: initialData?.date ?? "",
       supplierId: initialData?.supplierId ?? suppliers[0]?.id ?? undefined,
       grossAmount: initialData?.grossAmount ?? "",
+      contributionsAmount: initialData?.contributionsAmount ?? "0",
       type: initialData?.type ?? (suppliers.length > 0 ? "SUPPLIER" : "OTHER"),
       pdvPercent: initialData?.pdvPercent ?? defaultPdvPercent.toString(),
       paidNow: initialData?.paidNow ?? true,
@@ -72,6 +73,7 @@ export function ExpenseForm({
   const pdvPercent = watch("pdvPercent");
   const paidNow = watch("paidNow");
   const dateValue = watch("date");
+  const contributionsAmount = watch("contributionsAmount");
 
   useEffect(() => {
     register("supplierId");
@@ -79,6 +81,7 @@ export function ExpenseForm({
     register("type");
     register("pdvPercent");
     register("paidNow");
+    register("contributionsAmount");
   }, [register]);
 
   useEffect(() => {
@@ -92,6 +95,9 @@ export function ExpenseForm({
       setValue("supplierId", undefined);
       if (expenseType === "SALARY") {
         setValue("pdvPercent", "0");
+        if (!contributionsAmount) {
+          setValue("contributionsAmount", "0");
+        }
       } else if (!pdvPercent) {
         setValue("pdvPercent", defaultPdvPercent.toString());
       }
@@ -106,11 +112,25 @@ export function ExpenseForm({
     } else if (!pdvPercent) {
       setValue("pdvPercent", defaultPdvPercent.toString());
     }
-  }, [defaultPdvPercent, expenseType, pdvPercent, supplierId, suppliers, setValue]);
+  }, [
+    contributionsAmount,
+    defaultPdvPercent,
+    expenseType,
+    pdvPercent,
+    supplierId,
+    suppliers,
+    setValue,
+  ]);
 
   useEffect(() => {
     if (expenseType === "SUPPLIER_PAYMENT") {
       setValue("paidNow", true);
+    }
+  }, [expenseType, setValue]);
+
+  useEffect(() => {
+    if (expenseType !== "SALARY") {
+      setValue("contributionsAmount", "0");
     }
   }, [expenseType, setValue]);
 
@@ -247,6 +267,20 @@ export function ExpenseForm({
             <p className="text-xs text-destructive">{errors.pdvPercent.message}</p>
           ) : null}
         </div>
+        {expenseType === "SALARY" ? (
+          <div className="space-y-2">
+            <Label htmlFor="contributionsAmount">Doprinosi</Label>
+            <Input
+              id="contributionsAmount"
+              type="text"
+              placeholder="0.00"
+              {...register("contributionsAmount")}
+            />
+            {errors.contributionsAmount ? (
+              <p className="text-xs text-destructive">{errors.contributionsAmount.message}</p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       {expenseType === "SUPPLIER" || expenseType === "SUPPLIER_PAYMENT" ? (
         <div className="space-y-2">

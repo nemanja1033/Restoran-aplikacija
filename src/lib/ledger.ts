@@ -22,6 +22,7 @@ type IncomeLike = {
 type ExpenseLike = {
   date: Date;
   grossAmount: Decimal;
+  contributionsAmount: Decimal;
   pdvAmount: Decimal;
   type: "SUPPLIER" | "SUPPLIER_PAYMENT" | "SALARY" | "OTHER";
   paidNow: boolean;
@@ -92,7 +93,9 @@ export function buildDailyLedger({
       pdvTotal = pdvTotal.plus(expense.pdvAmount);
       const cashImpact = expense.type !== "SUPPLIER" || expense.paidNow;
       if (cashImpact) {
-        expensesCashTotal = expensesCashTotal.plus(expense.grossAmount);
+        const contributions =
+          expense.type === "SALARY" ? expense.contributionsAmount : decimal(0);
+        expensesCashTotal = expensesCashTotal.plus(expense.grossAmount).plus(contributions);
       }
     }
 

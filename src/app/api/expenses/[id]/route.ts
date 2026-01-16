@@ -58,6 +58,10 @@ export async function PUT(
           : new Decimal(0));
 
     const grossAmount = decimalFromString(parsed.grossAmount);
+    const contributionsAmount =
+      parsed.type === "SALARY" && parsed.contributionsAmount
+        ? decimalFromString(parsed.contributionsAmount)
+        : new Decimal(0);
     const { netAmount, pdvAmount } = calculatePdvBreakdown(
       grossAmount,
       pdvPercent
@@ -69,6 +73,7 @@ export async function PUT(
         date: parseDateString(parsed.date),
         supplierId: parsed.supplierId ?? null,
         grossAmount,
+        contributionsAmount,
         netAmount,
         pdvPercent,
         pdvAmount,
