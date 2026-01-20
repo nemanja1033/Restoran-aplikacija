@@ -16,12 +16,15 @@ export default function DashboardLayout({
         <div className="hidden lg:block">
           <Sidebar />
         </div>
-        <main className="rounded-3xl border border-white/60 bg-background/80 p-4 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.35)] sm:p-6">
+        <main className="rounded-3xl border border-white/60 bg-background/80 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.35)]">
           <AuthGuard>
-            <div className="mb-6">
-              <MobileNav />
+            {/* Mobile UX checklist: spacing scale, readable type, 44px+ taps, no overflow */}
+            <div className="px-5 py-14 sm:px-8 sm:py-[4.5rem] lg:px-10 lg:py-24">
+              <div className="mb-8">
+                <MobileNav />
+              </div>
+              <div className="space-y-8 sm:space-y-10">{children}</div>
             </div>
-            {children}
           </AuthGuard>
         </main>
       </div>

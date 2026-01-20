@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { SidebarNavContent } from "@/components/sidebar";
+import { SidebarNavContentWithClose } from "@/components/sidebar";
 
 export function MobileNav() {
+  const [open, setOpen] = useState(false);
+
   return (
     <div className="flex items-center justify-between lg:hidden">
       <div>
@@ -17,7 +20,7 @@ export function MobileNav() {
       </div>
       <div className="flex items-center gap-2">
         <ThemeToggle />
-        <Sheet>
+        <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon">
               <Menu className="h-4 w-4" />
@@ -28,7 +31,7 @@ export function MobileNav() {
             <SheetTitle>Navigacija</SheetTitle>
           </SheetHeader>
           <div className="mt-6">
-            <SidebarNavContent />
+            <SidebarNavContentWithClose onNavigate={() => setOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>

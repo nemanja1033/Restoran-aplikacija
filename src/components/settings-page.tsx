@@ -132,14 +132,18 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 sm:space-y-10">
       <div>
-        <p className="text-sm text-muted-foreground">Podešavanja osnovnih parametara</p>
-        <h2 className="text-2xl font-semibold">Podešavanja</h2>
+        <p className="text-sm text-muted-foreground max-w-[65ch]">
+          Podešavanja osnovnih parametara
+        </p>
+        <h2 className="max-w-[24ch] text-[clamp(1.6rem,4.5vw,2.25rem)] font-semibold leading-tight">
+          Podešavanja
+        </h2>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <div className="rounded-2xl border bg-card p-6">
+        <div className="rounded-2xl border bg-card p-4 sm:p-6">
           <h3 className="text-lg font-semibold">Osnovne vrednosti</h3>
           <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-4 md:grid-cols-2">
@@ -175,7 +179,7 @@ export function SettingsPage() {
           </form>
         </div>
 
-        <div className="rounded-2xl border bg-card p-6">
+        <div className="rounded-2xl border bg-card p-4 sm:p-6">
           <h3 className="text-lg font-semibold">Izvoz u Excel</h3>
           <p className="mt-2 text-sm text-muted-foreground">
             Izvezite dnevni pregled i sve transakcije za izabrani period.
@@ -213,7 +217,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-destructive/30 bg-card p-6">
+      <div className="rounded-2xl border border-destructive/30 bg-card p-4 sm:p-6">
         <h3 className="text-lg font-semibold">Reset podataka</h3>
         <p className="mt-2 text-sm text-muted-foreground">
           Brisanjem se uklanjaju svi uneti prihodi i troškovi. Dobavljači i podešavanja ostaju.

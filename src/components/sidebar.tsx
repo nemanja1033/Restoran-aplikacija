@@ -23,7 +23,7 @@ export const navItems = [
   { href: "/podesavanja", label: "Podešavanja", icon: Settings },
 ];
 
-function SidebarContent() {
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -37,6 +37,10 @@ function SidebarContent() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch
+              onClick={onNavigate}
+              onMouseEnter={() => router.prefetch(item.href)}
+              onTouchStart={() => router.prefetch(item.href)}
               className={cn(
                 "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition",
                 active
@@ -55,6 +59,7 @@ function SidebarContent() {
         size="sm"
         onClick={async () => {
           localStorage.removeItem("auth_token");
+          onNavigate?.();
           router.push("/login");
         }}
       >
@@ -86,4 +91,8 @@ export function Sidebar() {
 
 export function SidebarNavContent() {
   return <SidebarContent />;
+}
+
+export function SidebarNavContentWithClose({ onNavigate }: { onNavigate?: () => void }) {
+  return <SidebarContent onNavigate={onNavigate} />;
 }

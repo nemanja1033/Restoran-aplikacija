@@ -83,18 +83,24 @@ export function DashboardPage() {
   const currency = settings?.currency ?? "RSD";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 sm:space-y-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">Pregled poslovanja</p>
-          <h2 className="text-2xl font-semibold">Dobro došli nazad</h2>
+          <p className="text-sm text-muted-foreground max-w-[65ch]">Pregled poslovanja</p>
+          <h2 className="max-w-[24ch] text-[clamp(1.6rem,4.5vw,2.25rem)] font-semibold leading-tight">
+            Dobro došli nazad
+          </h2>
         </div>
         <div className="flex gap-2">
           <Button asChild>
-            <Link href="/prihodi">Dodaj prihod</Link>
+            <Link href="/prihodi" prefetch>
+              Dodaj prihod
+            </Link>
           </Button>
           <Button variant="secondary" asChild>
-            <Link href="/troskovi">Dodaj trošak</Link>
+            <Link href="/troskovi" prefetch>
+              Dodaj trošak
+            </Link>
           </Button>
         </div>
       </div>
@@ -148,7 +154,9 @@ export function DashboardPage() {
             </p>
           </div>
           <Button variant="secondary" asChild>
-            <Link href="/dobavljaci">Svi dobavljači</Link>
+            <Link href="/dobavljaci" prefetch>
+              Svi dobavljači
+            </Link>
           </Button>
         </div>
         <div className="hidden md:block">

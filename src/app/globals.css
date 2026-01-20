@@ -120,6 +120,10 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans overflow-x-hidden text-[15px] sm:text-[16px] lg:text-[17px] xl:text-[18px];
+  }
+
+  p {
+    max-width: 65ch;
   }
 }

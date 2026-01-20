@@ -183,11 +183,15 @@ export function DailyLedger() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 sm:space-y-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">Analitika i promene po danima</p>
-          <h2 className="text-2xl font-semibold">Dnevni pregled</h2>
+          <p className="text-sm text-muted-foreground max-w-[65ch]">
+            Analitika i promene po danima
+          </p>
+          <h2 className="max-w-[24ch] text-[clamp(1.6rem,4.5vw,2.25rem)] font-semibold leading-tight">
+            Dnevni pregled
+          </h2>
         </div>
         <DateRangeFilter active={range.label} onChange={handleRangeChange} />
       </div>

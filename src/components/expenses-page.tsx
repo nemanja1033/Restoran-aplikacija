@@ -92,10 +92,12 @@ export function ExpensesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 sm:space-y-10">
       <div>
-        <p className="text-sm text-muted-foreground">Upravljanje troškovima</p>
-        <h2 className="text-2xl font-semibold">Troškovi</h2>
+        <p className="text-sm text-muted-foreground max-w-[65ch]">Upravljanje troškovima</p>
+        <h2 className="max-w-[24ch] text-[clamp(1.6rem,4.5vw,2.25rem)] font-semibold leading-tight">
+          Troškovi
+        </h2>
       </div>
 
       <div className="space-y-4">

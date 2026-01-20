@@ -1,27 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get("token");
+    const token = searchParams.get("token");
     if (token) {
       localStorage.setItem("auth_token", token);
-      window.location.assign("/");
+      router.replace("/");
       return;
     }
-    setError(params.get("error") ? "Neispravna šifra ili lozinka." : "");
-  }, []);
+    setError(searchParams.get("error") ? "Neispravna šifra ili lozinka." : "");
+  }, [router, searchParams]);
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -36,7 +37,7 @@ export default function LoginPage() {
     const data = await response.json().catch(() => null);
     if (response.ok && data?.token) {
       localStorage.setItem("auth_token", data.token);
-      window.location.assign("/");
+      router.replace("/");
       return;
     }
     setError(data?.error ?? "Neispravna šifra ili lozinka.");

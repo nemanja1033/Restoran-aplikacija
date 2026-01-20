@@ -84,11 +84,13 @@ export function RevenuesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 sm:space-y-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">Upravljanje prihodima</p>
-          <h2 className="text-2xl font-semibold">Prihodi</h2>
+          <p className="text-sm text-muted-foreground max-w-[65ch]">Upravljanje prihodima</p>
+          <h2 className="max-w-[24ch] text-[clamp(1.6rem,4.5vw,2.25rem)] font-semibold leading-tight">
+            Prihodi
+          </h2>
         </div>
         <Button onClick={() => setOpen(true)}>Dodaj prihod</Button>
       </div>
